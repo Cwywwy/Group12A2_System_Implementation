@@ -1,0 +1,17 @@
+model_a,model_b,top10_overlap
+if_finance,if_finance,1.0
+if_finance,if_text,0.12039312039312039
+if_finance,if_fused,0.828009828009828
+if_finance,ae_fused,0.36855036855036855
+if_text,if_finance,0.12039312039312039
+if_text,if_text,1.0
+if_text,if_fused,0.2641277641277641
+if_text,ae_fused,0.1547911547911548
+if_fused,if_finance,0.828009828009828
+if_fused,if_text,0.2641277641277641
+if_fused,if_fused,1.0
+if_fused,ae_fused,0.36732186732186733
+ae_fused,if_finance,0.36855036855036855
+ae_fused,if_text,0.1547911547911548
+ae_fused,if_fused,0.36732186732186733
+ae_fused,ae_fused,1.0

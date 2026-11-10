@@ -79,7 +79,8 @@ model arrived at a score; it did not identify causal mechanisms.
 ## 3.5 Evaluation
 
 The main continuous validation was the Spearman rank association between anomaly scores and
-the Beneish M-Score, using the −1.78 flag threshold as a benchmark indicator only. For each
+the Beneish M-Score, using benchmark flags as validation-only indicators: the legacy M > −1.78
+rule and a sample-calibrated top-decile M-Score flag. For each
 available binary benchmark the event rate and the enrichment ratio in the top 10% were
 reported relative to the full eligible sample, with top-5% and top-15% sensitivity figures.
 Robustness checks varied the review threshold, feature set, year, and manufacturing

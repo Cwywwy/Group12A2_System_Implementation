@@ -13,6 +13,8 @@ Revision History
 -----------------
 2026-11-06  initial version: score distribution, top-k enrichment, group
             contributions, SHAP importance, ranking overlap, batch helper.
+2026-11-11  score distribution shades the sample-calibrated top-decile flag;
+            top-k enrichment plots the calibrated benchmark.
 """
 from pathlib import Path
 
@@ -53,10 +55,11 @@ def plot_score_distribution(scores: pd.DataFrame, score_col: str, out: Path) -> 
     """Histogram of one anomaly-score column; benchmark-flagged mass shaded."""
     _apply_style()
     values = scores[score_col].dropna().to_numpy()
-    flagged = scores.loc[scores["benchmark_flag"].astype(int) == 1, score_col].dropna().to_numpy()
+    flag_col = "benchmark_flag_calibrated" if "benchmark_flag_calibrated" in scores.columns else "benchmark_flag"
+    flagged = scores.loc[scores[flag_col].astype(int) == 1, score_col].dropna().to_numpy()
     fig, ax = plt.subplots(figsize=(8, 4.5))
     ax.hist(values, bins=50, color=BASE_COLOURS[0], alpha=0.85, label="全部样本")
-    ax.hist(flagged, bins=50, color=BASE_COLOURS[2], alpha=0.85, label="Beneish 标记 (M > -1.78)")
+    ax.hist(flagged, bins=50, color=BASE_COLOURS[2], alpha=0.85, label="Beneish 标记 (样本 top-10%)")
     ax.set_xlabel("异常得分")
     ax.set_ylabel("样本数")
     ax.set_title(f"异常得分分布 · {SCORE_LABELS.get(score_col, score_col)}")
@@ -67,6 +70,8 @@ def plot_score_distribution(scores: pd.DataFrame, score_col: str, out: Path) -> 
 def plot_topk_enrichment(metrics: pd.DataFrame, out: Path) -> Path:
     """Grouped bars: enrichment ratio per model across k = 5% / 10% / 15%."""
     _apply_style()
+    if "benchmark" in metrics.columns:
+        metrics = metrics[metrics["benchmark"] == "calibrated"].copy()
     k_values = sorted(metrics["k"].unique())
     models = [m for m in SCORE_COLUMNS if m in set(metrics["model"])]
     width = 0.8 / len(models)
@@ -82,8 +87,8 @@ def plot_topk_enrichment(metrics: pd.DataFrame, out: Path) -> Path:
     ax.set_xticks(x)
     ax.set_xticklabels([f"{int(k * 100)}%" for k in k_values])
     ax.set_xlabel("审查比例 k")
-    ax.set_ylabel("富集率（相对基准率）")
-    ax.set_title("top-k 富集率：Beneish 标记在审查名单中的浓缩程度")
+    ax.set_ylabel("富集率（相对样本 top-10% 基准率）")
+    ax.set_title("top-k 富集率：样本校准 Beneish 标记在审查名单中的浓缩程度")
     ax.legend()
     return _save(fig, out)
 

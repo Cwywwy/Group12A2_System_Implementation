@@ -14,7 +14,7 @@ import pytest
 from src.config import PROJECT_ROOT
 from src.features.textual import (
     compute_text_features,
-    count_dictionary_hits,
+    count_dictionary_tokens,
     extract_mda_features,
     extract_pdf_text,
     locate_mda,
@@ -82,17 +82,27 @@ def test_tokenise_keeps_chinese_only():
     assert tokens == ["公司", "业绩"]
 
 
-def test_count_dictionary_hits_is_substring_based():
-    assert count_dictionary_hits("增长增长，亏损。", {"增长", "亏损"}) == 3
+def test_count_dictionary_tokens_exact_match():
+    assert count_dictionary_tokens(["增长", "增长", "亏损"], {"增长", "亏损"}) == 3
+    # token membership avoids the v0.1 substring false hit (不 inside 不错)
+    assert count_dictionary_tokens(["不错", "不确定"], {"不"}) == 0
 
 
 def test_text_features_known_counts():
     text = "公司业绩增长，增长。亏损。不明朗，不明朗，取决于。"
-    features = compute_text_features(text, {"增长"}, {"亏损"}, {"不明朗", "取决于"})
-    total = features["n_tokens"]
-    assert features["sentiment_balance"] == (2 - 1) / total
-    assert features["uncertainty_ratio"] == 3 / total
+    pos, neg, unc = {"增长"}, {"亏损"}, {"不明朗", "取决于"}
+    features = compute_text_features(text, pos, neg, unc)
+    tokens = tokenise(text)
+    total = len(tokens)
+    pos_hits = count_dictionary_tokens(tokens, pos)
+    neg_hits = count_dictionary_tokens(tokens, neg)
+    unc_hits = count_dictionary_tokens(tokens, unc)
+    assert features["n_tokens"] == total
+    assert features["sentiment_balance"] == pytest.approx((pos_hits - neg_hits) / total)
+    assert features["uncertainty_ratio"] == pytest.approx(unc_hits / total)
     assert 0.0 < features["readability"] <= 1.0
+    # sanity: the planted words are actually detected as present
+    assert pos_hits >= 1 and neg_hits >= 1 and unc_hits >= 2
 
 
 def test_text_features_empty_text():

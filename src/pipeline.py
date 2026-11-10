@@ -8,7 +8,8 @@ Module: src
 Steps: load the feature table -> winsorise -> standardise within
 subindustry-year cells (sparse-cell fallback) -> three Isolation Forest
 rankings (finance only / text only / fused) plus an autoencoder on the fused
-matrix -> benchmark flags (Beneish M > -1.78; never used in training) ->
+matrix -> benchmark flags (legacy Beneish M > -1.78 plus a sample-calibrated
+top-decile M-Score flag; never used in training) ->
 metrics tables (Spearman rho, top-k event rate, enrichment ratio, top-k
 overlap) -> SHAP global, group and local explanations.
 
@@ -21,6 +22,9 @@ Revision History
 2026-11-10  force-include the top-1 review-priority row in the SHAP subsample
             so its local explanation never raises KeyError when the sample is
             capped (n > 2000).
+2026-11-11  add a second, sample-calibrated benchmark flag (top-decile M-Score)
+            alongside the legacy -1.78 flag; top-k metrics are reported per
+            benchmark ("legacy" vs "calibrated").
 """
 from pathlib import Path
 
@@ -30,6 +34,7 @@ import pandas as pd
 from src.config import (
     ALL_FEATURES,
     BENEISH_THRESHOLD,
+    BENEISH_TOP_QUANTILE,
     FINANCE_FEATURES,
     OUTPUTS,
     SEED,
@@ -109,6 +114,9 @@ def run_pipeline(feature_csv: Path, output_dir: Path | None = None) -> dict:
     record_autoencoder_config(out_path=reports_dir / "autoencoder_config.json")
 
     flags = (work["m_score"] > BENEISH_THRESHOLD).astype(int).to_numpy()
+    calibrated_flags = np.zeros(len(work), dtype=int)
+    calibrated_flags[top_k_indices(work["m_score"].to_numpy(), BENEISH_TOP_QUANTILE)] = 1
+    benchmark_flags = {"legacy": flags, "calibrated": calibrated_flags}
 
     spearman_rows = []
     for name, scores in rankings.items():
@@ -117,14 +125,16 @@ def run_pipeline(feature_csv: Path, output_dir: Path | None = None) -> dict:
     pd.DataFrame(spearman_rows).to_csv(tables_dir / "model_metrics.csv", index=False)
 
     topk_rows = []
-    for name, scores in rankings.items():
-        for k in K_VALUES:
-            topk_rows.append({
-                "model": name,
-                "k": k,
-                "event_rate": top_k_event_rate(scores, flags, k),
-                "enrichment": enrichment_ratio(scores, flags, k),
-            })
+    for benchmark_name, flag_arr in benchmark_flags.items():
+        for name, scores in rankings.items():
+            for k in K_VALUES:
+                topk_rows.append({
+                    "benchmark": benchmark_name,
+                    "model": name,
+                    "k": k,
+                    "event_rate": top_k_event_rate(scores, flag_arr, k),
+                    "enrichment": enrichment_ratio(scores, flag_arr, k),
+                })
     pd.DataFrame(topk_rows).to_csv(tables_dir / "topk_metrics.csv", index=False)
 
     overlap_rows = []
@@ -142,6 +152,7 @@ def run_pipeline(feature_csv: Path, output_dir: Path | None = None) -> dict:
         scores_out[name] = scores
     scores_out["m_score"] = work["m_score"].to_numpy()
     scores_out["benchmark_flag"] = flags
+    scores_out["benchmark_flag_calibrated"] = calibrated_flags
     scores_out.to_csv(tables_dir / "anomaly_scores.csv", index=False)
 
     # SHAP on the fused model (reused from the ranking loop), capped for runtime
@@ -167,8 +178,22 @@ def run_pipeline(feature_csv: Path, output_dir: Path | None = None) -> dict:
     summary = {
         "n_rows": int(len(work)),
         "spearman": {r["model"]: round(r["spearman_rho"], 4) for r in spearman_rows},
-        "event_rate_top10": {r["model"]: round(r["event_rate"], 4) for r in topk_rows if r["k"] == 0.10},
-        "enrichment_top10": {r["model"]: round(r["enrichment"], 4) for r in topk_rows if r["k"] == 0.10},
+        "event_rate_top10": {
+            r["model"]: round(r["event_rate"], 4)
+            for r in topk_rows if r["k"] == 0.10 and r["benchmark"] == "calibrated"
+        },
+        "enrichment_top10": {
+            r["model"]: round(r["enrichment"], 4)
+            for r in topk_rows if r["k"] == 0.10 and r["benchmark"] == "calibrated"
+        },
+        "event_rate_top10_legacy": {
+            r["model"]: round(r["event_rate"], 4)
+            for r in topk_rows if r["k"] == 0.10 and r["benchmark"] == "legacy"
+        },
+        "enrichment_top10_legacy": {
+            r["model"]: round(r["enrichment"], 4)
+            for r in topk_rows if r["k"] == 0.10 and r["benchmark"] == "legacy"
+        },
         "top1_symbol": str(work.iloc[int(np.argmax(rankings["if_fused"]))]["symbol"]),
     }
     return summary

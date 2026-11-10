@@ -8,7 +8,7 @@
 - Python 3.12（项目开发用 3.12.14；3.11+ 均可）
 - 依赖安装：`python -m venv .venv --system-site-packages`（或普通 venv）后
   `& ".venv\Scripts\python.exe" -m pip install -r requirements.txt`
-- 验证：`& ".venv\Scripts\python.exe" -m pytest -q` 应全部通过（当前 39 个）
+- 验证：`& ".venv\Scripts\python.exe" -m pytest -q` 应全部通过（当前 77 个）
 
 ## 1. 数据准备
 
@@ -45,18 +45,35 @@
 
 ### 1.3 MD&A 文本特征提取
 
+推荐（并行重算，v0.2 词典 + 词元匹配 + MD&A 原文缓存）：
+
+```powershell
+& ".venv\Scripts\python.exe" "scripts\run_05b_recompute_text_features.py" --workers 8
+```
+
+输出 `data/interim/text_features_{year}.csv`（同 run_05 模式）+ `data/interim/mda_text_{year}.jsonl`
+（每行 `{"symbol","mda_text"}` 缓存原文，供以后换词典时免重提取 PDF）。
+
+增量备选（单线程，同一命令可随时重跑、已处理文件自动跳过，每 25 个文件断点写盘）：
+
 ```powershell
 & ".venv\Scripts\python.exe" "scripts\run_05_extract_mda_features.py" --year 2021
 & ".venv\Scripts\python.exe" "scripts\run_05_extract_mda_features.py" --year 2022
 & ".venv\Scripts\python.exe" "scripts\run_05_extract_mda_features.py" --year 2023
 ```
 
-输出 `data/interim/text_features_{year}.csv`。扫描件（`no_mda`）与过短切片在
-`feature_table.text_quality` 中标记为 `suspicious`，按论文的处理规则报告。
+扫描件（`no_mda`）与过短切片在 `feature_table.text_quality` 中标记为 `suspicious`，按论文的处理规则报告。旧 v0.1 特征表会由 run_05b 自动备份到 `data/interim/v0.1_text_features_backup/`。
 
-提取是**增量的**：同一命令可随时重跑，已处理文件自动跳过；每 25 个文件断点
-写盘一次，中断后重启即续跑。北交所旧码补下的 PDF 只需在首遍结束后把同一
-`--year` 命令再跑一遍即可补齐，无需手工清单。
+### 1.4 词典密度对照（可选，用于回应"词表是否太薄"）
+
+```powershell
+& ".venv\Scripts\python.exe" "scripts/run_05c_lexicon_density.py" --year 2021 --sample 200
+```
+
+输出 `outputs/tables/lexicon_density.csv`：在同一份 MD&A token 流上分别用 v0.1（引导版，位于
+`data/external/dictionaries/v0.1_bootstrap_backup/`）与 v0.2（`data/external/dictionaries/`）词表计数，
+给出每 1,000 词元的命中期密度与倍数。论文引用值：情感词 13.41 → 111.30（8.30×），
+不确定词 2.14 → 5.66（2.64×）。
 
 ## 2. 特征表
 
@@ -76,10 +93,22 @@
 
 - `anomaly_scores.csv`（四路排名分 + M-Score 基准标记）
 - `model_metrics.csv`（Spearman 相关）
-- `topk_metrics.csv`（k=5%/10%/15% 事件率与 enrichment）
+- `topk_metrics.csv`（双基准 legacy/calibrated × 4 模型 × k=5%/10%/15%，共 24 行）
 - `ranking_overlap.csv`（IF 与 AE 排序重叠，RQ3）
 - `shap_global.csv`、`shap_group_contributions.csv`（RQ2）、`shap_local_top1.csv`
+- `lexicon_density.csv`（v0.1/v0.2 词表在同一 token 流上的命中密度，由 run_05c 生成）
 - `outputs/reports/autoencoder_config.json`（AE 完整超参存档）
+
+改动做法（换词典、换基准等）后需要对比两版结果时：
+
+```powershell
+& ".venv\Scripts\python.exe" "scripts/compare_runs.py" `
+  --old "outputs/.tmp/v01_dual_benchmark/tables" --new "outputs/tables" `
+  --label-old "v0.1 lexicon" --label-new "v0.2 lexicon"
+```
+
+输出两版的样本量、ρ 与 p、两个基准下的 top-5/10/15% 富集率变化、SHAP 组份额、
+前 10% 名单重叠与第一名公司；`--old` 目录可指向无 `benchmark` 列的旧版 12 行表。
 
 ## 4. 可复现性关键点
 
@@ -90,7 +119,7 @@
 
 ## 5. 已知近似与边界（论文中如实报告）
 
-- 词典命中为原文子串计数（重叠词双计）；词典为引导版，定稿前需确认
+- 词典命中为 jieba 词元精确匹配（词典 v0.2：姚加权等 (2021) 正式文本词表 3,585 正 / 1,633 负 + 扩充不确定性词表）；子串计数仅存在于 v0.1 引导版（已归档备份）
 - 文本特征只覆盖有文本层且能找到 MD&A 章节标题的年报；扫描件标记后按规则处理。不可读或结构损坏的 PDF 写为 `pdf_error` QC 行，不中断批量任务
 - 组内标准化稀疏组（<20 条）退回全样本均值/方差
 - SHAP 计算对 >2000 行做固定种子子采样
@@ -116,7 +145,11 @@
 实验结果与论文正文由以下脚本/产物承接，最终 Word 都在 `outputs/manuscript/`：
 
 - **英文结果段落**：`scripts/run_12_narrate_results.py` 读 `outputs/tables/` 生成 `outputs/reports/results_narrative.md`（RQ1–RQ3 自动填数）。
+- **§5 重写与表格排版**：`scripts/build_section5.py` 读 `outputs/tables/*.csv` 与 `data/processed/feature_table.csv`，同时生成三份产物——英文 §5 markdown（`docs/manuscript_experiment_section.md`）、中文 §5 markdown（`docs/manuscript_chinese_experiment_section.md`）、以及把 Table 5.1–5.3 直接排进正文的 Word 终稿（`--docx` 改英文、`--docx-cn` 改中文）。所有数字与表格都由 CSV 现算，重跑 `run_07` 后一条命令即可刷新；脚本按固定的段落槽位（英文稿 91 段 / 中文稿 56 段）定位，若 Word 段落结构改变需同步 `SLOT_*` / `CN_SLOT_*` 常量。
+  改表格前先确认母版干净：`outputs/manuscript/source/` 存着**不含表格**的英文/中文母版，脚本默认从母版读、往 `outputs/manuscript/` 写。直接把已插表的交付件当输入会重复插表并把段落槽位冲掉。
 - **中文终稿 Word**：`scripts/run_13_build_chinese_docx.py` 把 `docs/manuscript_chinese_draft.md` 转成 `outputs/manuscript/Group12A2_Final_CN.docx`（宋体正文/黑体标题/1.5 倍行距）。
-- **英文终稿 Word**：`outputs/manuscript/Group12A2_Final_EN.docx`，由 `scripts/archive/insert_section5_results.js` 通过 Univer 工具把真实 §5 数字写入 `PaperDraft` 后导出（§1–§6 + 24 条参考文献 + 摘要结果句）。
+- **英文终稿 Word**：`outputs/manuscript/Group12A2_Final_EN.docx`，由 `scripts/archive/insert_section5_results.js` 通过 Univer 工具把真实 §5 数字写入 `PaperDraft` 后导出（§1–§6 + 24 条参考文献 + 摘要结果句），再由 `build_section5.py` 刷新 §5 与三张表。
+- **PDF**：本机无 LibreOffice，PDF 由 Univer 导入 docx 后打印（`univer_import` → `univer_print_pdf`），终稿英文 12–15 页（满足 Option 2 页数要求）。
+- **演示幻灯片**：`scripts/build_slides.py` 读 `outputs/tables/` 生成 12 页 16:9 演示稿 `outputs/slides/Group12A2_Deck.pptx`（版式规范见 `docs/slides_deck_spec.md`），并与 §5 共用同一套数字（`build_section5.collect_numbers()`），所以正文与幻灯片不会出现两套数。重跑 `run_07` 后再跑一次脚本即可刷新；PDF 版同名输出在 `outputs/slides/Group12A2_Deck.pdf`。
 
 论文正文的数字全部来自第 1–6 节的管线输出，不写死任何无法由脚本复现的常量。

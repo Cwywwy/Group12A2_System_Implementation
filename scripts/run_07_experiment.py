@@ -43,7 +43,7 @@ def _write_summary(summary: dict, out_path: Path) -> None:
         lines.append(f"| {model} | {rho} |")
     lines += [
         "",
-        "## top-10% 审查名单表现",
+        "## top-10% 审查名单表现（样本校准基准：M-Score top-10%）",
         "",
         "| 模型 | 事件率 | 富集率 |",
         "| --- | --- | --- |",
@@ -51,6 +51,17 @@ def _write_summary(summary: dict, out_path: Path) -> None:
     for model in summary["spearman"]:
         lines.append(
             f"| {model} | {summary['event_rate_top10'][model]} | {summary['enrichment_top10'][model]} |"
+        )
+    lines += [
+        "",
+        "## top-10% 审查名单表现（legacy 基准：M > -1.78）",
+        "",
+        "| 模型 | 事件率 | 富集率 |",
+        "| --- | --- | --- |",
+    ]
+    for model in summary["spearman"]:
+        lines.append(
+            f"| {model} | {summary['event_rate_top10_legacy'][model]} | {summary['enrichment_top10_legacy'][model]} |"
         )
     lines += [
         "",
@@ -76,7 +87,8 @@ def main() -> int:
 
     print(f"[run_07] 有效样本 n={summary['n_rows']}")
     print(f"[run_07] Spearman ρ = {summary['spearman']}")
-    print(f"[run_07] top-10% 富集率 = {summary['enrichment_top10']}")
+    print(f"[run_07] top-10% 富集率（样本校准）= {summary['enrichment_top10']}")
+    print(f"[run_07] top-10% 富集率（legacy -1.78）= {summary['enrichment_top10_legacy']}")
     print(f"[run_07] 审查优先第 1 名 = {summary['top1_symbol']}")
     for path in figures:
         print(f"[run_07] 图件: {path}")

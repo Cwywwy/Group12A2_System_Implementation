@@ -16,6 +16,7 @@ from pathlib import Path
 import pandas as pd
 
 SCORE_MODELS = ("if_finance", "if_text", "if_fused", "ae_fused")
+BENCHMARK_LABELS = {"legacy": "M > -1.78", "calibrated": "M top-10%"}
 
 
 def _f(x, digits: int = 3) -> str:
@@ -107,20 +108,22 @@ def narrate_rq3(overlap: pd.DataFrame, topk: pd.DataFrame) -> str:
         lines.append(f"| {row['model_a']} vs {row['model_b']} | "
                      f"{_f(row['top10_overlap'])} |")
     lines.append("")
-    lines.append("| Model | k | Event rate (M> -1.78) | Enrichment |")
-    lines.append("| --- | --- | --- | --- |")
+    lines.append("| Benchmark | Model | k | Event rate | Enrichment |")
+    lines.append("| --- | --- | --- | --- | --- |")
     for _, row in topk.iterrows():
-        lines.append(f"| {row['model']} | {row['k']} | {_f(row['event_rate'])} | "
+        label = BENCHMARK_LABELS.get(row["benchmark"], row["benchmark"])
+        lines.append(f"| {label} | {row['model']} | {row['k']} | {_f(row['event_rate'])} | "
                      f"{_f(row['enrichment'])} |")
     lines.append("")
-    fused = topk.loc[(topk["model"] == "if_fused") & (topk["k"] == 0.10)]
+    fused = topk.loc[(topk["model"] == "if_fused") & (topk["k"] == 0.10)
+                     & (topk["benchmark"] == "calibrated")]
     if not fused.empty:
         r = fused.iloc[0]
         lines.append(
-            f"At the top-10% review threshold the fused model flags a flag rate of "
-            f"{_f(r['event_rate'])} against the M-Score benchmark, i.e. "
-            f"{_f(r['enrichment'])}x the sample-wide benchmark rate, which supports "
-            f"its use as a screening signal rather than a definitive risk label."
+            f"At the top-10% review threshold the fused model flags {_f(r['event_rate'])} "
+            f"of the sample-calibrated benchmark (top-decile M-Score), i.e. "
+            f"{_f(r['enrichment'])}x the 10% benchmark rate, which supports its use as "
+            f"a screening signal rather than a definitive risk label."
         )
     lines.append("")
     return "\n".join(lines)

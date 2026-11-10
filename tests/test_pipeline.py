@@ -65,7 +65,8 @@ def test_run_pipeline_writes_all_tables(tmp_path):
     metrics = pd.read_csv(tables / "model_metrics.csv")
     assert list(metrics["model"]) == ["if_finance", "if_text", "if_fused", "ae_fused"]
     topk = pd.read_csv(tables / "topk_metrics.csv")
-    assert len(topk) == 12  # 4 models x 3 k values
+    assert len(topk) == 24  # 2 benchmarks x 4 models x 3 k values
+    assert set(topk["benchmark"]) == {"legacy", "calibrated"}
     overlap = pd.read_csv(tables / "ranking_overlap.csv")
     assert len(overlap) == 16  # 4 x 4 model pairs
 

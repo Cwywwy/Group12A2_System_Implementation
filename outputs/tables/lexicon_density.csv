@@ -1,0 +1,5 @@
+﻿metric,v01_per_1000,v02_per_1000,ratio
+positive_terms,10.29,100.15,9.73
+negative_terms,3.12,11.16,3.58
+sentiment_terms,13.41,111.3,8.3
+uncertainty_terms,2.14,5.66,2.64

@@ -99,17 +99,20 @@ Chinese financial sentiment dictionary and an uncertainty dictionary:
 | Sentiment balance | (positive hits − negative hits) / token count |
 | Uncertainty ratio | uncertainty hits / token count |
 
-Dictionary hits are counted as raw substring occurrences of each dictionary
-word in the MD&A text, a deterministic approximation documented in the feature
-dictionary. The dictionaries are bootstrap versions derived from the Yao et
-al. (2021) financial sentiment lexicon, the Loughran–McDonald (2011) term
-lists in Chinese translation, and the uncertainty terms of Zeng et al. (2018);
-they are marked as provisional pending final confirmation.
+Dictionary hits are counted by exact token matching after jieba word
+segmentation with a user dictionary that forces whole-word segmentation of the
+multi-character financial terms. The sentiment dictionaries are the full
+formal-register lexicon of Yao et al. (2021) (3,585 positive and 1,633
+negative Chinese terms after filtering to pure-Chinese entries); the
+uncertainty dictionary combines the Loughran–McDonald (2011) uncertain terms in
+Chinese translation with the uncertainty terms of Zeng et al. (2018).
 
 **Benchmark.** The Beneish M-Score is computed from the eight financial
-statement ratios with the standard coefficients. A firm-year with M > −1.78 is
-flagged as benchmark-positive. The M-Score is used only for validation and is
-excluded from all model inputs.
+statement ratios with the standard coefficients. Because the original −1.78
+cut-off flags a majority of firm-years in this Chinese sample, benchmark
+positivity is defined under two alternatives: (i) the legacy M > −1.78 rule,
+and (ii) a sample-calibrated top-decile M-Score flag. The M-Score is used only
+for validation and is excluded from all model inputs.
 
 **Standardisation.** All features are winsorised at the 1st and 99th
 percentiles and then standardised to z-scores *within* manufacturing

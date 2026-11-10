@@ -8,6 +8,7 @@ Module: src (core)
 Revision History
 -----------------
 2026-11-05  initial version: seeds, thresholds, paths, feature definitions.
+2026-11-11  add BENEISH_TOP_QUANTILE (sample-calibrated top-decile benchmark).
 """
 from pathlib import Path
 
@@ -45,7 +46,8 @@ WINSOR_QUANTILES = (0.01, 0.99)
 MIN_SUBINDUSTRY_YEAR_CELL = 20                    # below this, standardise on the full sample
 
 # ---- Beneish M-Score ----
-BENEISH_THRESHOLD = -1.78                         # benchmark flag only, never a training input
+BENEISH_THRESHOLD = -1.78                         # legacy benchmark flag only, never a training input
+BENEISH_TOP_QUANTILE = 0.10                       # recalibrated benchmark: top-decile M-Score
 
 # ---- Feature definitions (formulae fixed in docs/feature_dictionary.md) ----
 FINANCE_FEATURES = (

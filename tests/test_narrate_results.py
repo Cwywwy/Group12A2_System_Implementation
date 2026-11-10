@@ -69,14 +69,17 @@ def test_narrate_rq3_lists_overlap_and_screening_sentence():
         {"model_a": "if_finance", "model_b": "if_fused", "top10_overlap": 0.71},
     ])
     tk = pd.DataFrame([
-        {"model": "if_fused", "k": 0.05, "event_rate": 0.30, "enrichment": 4.2},
-        {"model": "if_fused", "k": 0.10, "event_rate": 0.26, "enrichment": 3.7},
-        {"model": "if_fused", "k": 0.15, "event_rate": 0.20, "enrichment": 2.9},
+        {"benchmark": "calibrated", "model": "if_fused", "k": 0.05, "event_rate": 0.30, "enrichment": 4.2},
+        {"benchmark": "calibrated", "model": "if_fused", "k": 0.10, "event_rate": 0.26, "enrichment": 3.7},
+        {"benchmark": "calibrated", "model": "if_fused", "k": 0.15, "event_rate": 0.20, "enrichment": 2.9},
+        {"benchmark": "legacy", "model": "if_fused", "k": 0.10, "event_rate": 0.76, "enrichment": 1.2},
     ])
     text = narrate_rq3(ov, tk)
     assert "0.710" in text
     assert "0.260" in text
     assert "screening signal" in text
+    assert "M top-10%" in text
+    assert "M > -1.78" in text
     assert "if_finance vs if_finance" not in text  # diagonal dropped
 
 

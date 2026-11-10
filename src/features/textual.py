@@ -21,6 +21,10 @@ Revision History
             strong occurrence fall back to the longest slice.  Fixes false-short
             slices like 000408 (4 tokens) where the body heading sits on its own
             line while the TOC entry starts with 第三节.
+2026-11-11  v0.2 dictionary: load the jieba user dictionary so multi-character
+            financial terms segment whole, and switch sentiment/uncertainty counting
+            from substring hits to token-exact membership (full Yao et al. 2021
+            formal lexicon, 5,218 words).
 """
 import re
 from pathlib import Path
@@ -34,12 +38,15 @@ DICT_DIR = PROJECT_ROOT / "data" / "external" / "dictionaries"
 FIN_POSITIVE = DICT_DIR / "financial_positive.txt"
 FIN_NEGATIVE = DICT_DIR / "financial_negative.txt"
 UNCERTAINTY = DICT_DIR / "uncertainty.txt"
+JIEBA_USERDICT = DICT_DIR / "jieba_userdict.txt"
 
 MDA_HEADINGS = ("管理层讨论与分析", "经营情况讨论与分析", "管理层分析与讨论")
 NEXT_SECTION = re.compile(r"第[四五六七八九十百]+节")
 HEADING_LINE = re.compile(r"第[一二三四五六七八九十百]+[章节]")
 SENTENCE_SPLIT = re.compile(r"[。！？；]+")
 CHINESE_TOKEN = re.compile(r"^[\u4e00-\u9fff]+$")
+
+_userdict_loaded = False
 
 
 def extract_pdf_text(path: Path) -> str:
@@ -88,8 +95,20 @@ def locate_mda(text: str) -> str | None:
     return max(pool, key=len)
 
 
+def _ensure_userdict() -> None:
+    """Load the financial lexicon into jieba once per process so multi-character
+    terms segment as single tokens."""
+    global _userdict_loaded
+    if _userdict_loaded:
+        return
+    if JIEBA_USERDICT.exists():
+        jieba.load_userdict(str(JIEBA_USERDICT))
+    _userdict_loaded = True
+
+
 def tokenise(text: str) -> list[str]:
     """jieba word segmentation; keep pure-Chinese tokens only."""
+    _ensure_userdict()
     return [token for token in jieba.lcut(text) if CHINESE_TOKEN.match(token)]
 
 
@@ -105,9 +124,15 @@ def load_dictionary(path: Path) -> set[str]:
     return words
 
 
-def count_dictionary_hits(text: str, words: set[str]) -> int:
-    """Count raw substring occurrences of each dictionary word (deterministic)."""
-    return sum(text.count(word) for word in words)
+def count_dictionary_tokens(tokens: list[str], words: set[str]) -> int:
+    """Count dictionary members among word-segmented tokens (token-exact match).
+
+    Replaces the v0.1 substring count: at the full-lexicon scale (5,218 words) a
+    substring scan is both infeasible and over-counts negation prefixes (e.g. 不
+    inside 不错) and overlapping terms. Token membership matches the word-frequency
+    methodology of the source lexicon (Yao et al., 2021).
+    """
+    return sum(1 for token in tokens if token in words)
 
 
 def compute_text_features(
@@ -123,9 +148,9 @@ def compute_text_features(
 
     tokens = tokenise(text)
     total = len(tokens)
-    pos_hits = count_dictionary_hits(text, positive_words)
-    neg_hits = count_dictionary_hits(text, negative_words)
-    unc_hits = count_dictionary_hits(text, uncertainty_words)
+    pos_hits = count_dictionary_tokens(tokens, positive_words)
+    neg_hits = count_dictionary_tokens(tokens, negative_words)
+    unc_hits = count_dictionary_tokens(tokens, uncertainty_words)
 
     sentences = [s for s in SENTENCE_SPLIT.split(text) if s.strip()]
     mean_chars = sum(len(s) for s in sentences) / len(sentences) if sentences else 0.0
@@ -140,8 +165,12 @@ def compute_text_features(
     }
 
 
-def extract_mda_features(path: Path) -> dict:
-    """Full flow for one PDF; unreadable PDFs become QC rows, not batch failures."""
+def extract_mda_features(path: Path, include_text: bool = False) -> dict:
+    """Full flow for one PDF; unreadable PDFs become QC rows, not batch failures.
+
+    include_text=True additionally returns the raw MD&A slice under "mda_text"
+    so callers can cache the text layer without re-extracting the PDF later.
+    """
     try:
         text = extract_pdf_text(path)
     except Exception as exc:  # pypdf errors vary by malformed document structure
@@ -155,4 +184,7 @@ def extract_mda_features(path: Path) -> dict:
     if mda is None:
         return {"path": str(path), "status": "no_mda", "features": None}
     features = compute_text_features(mda)
-    return {"path": str(path), "status": "ok", "features": features}
+    result = {"path": str(path), "status": "ok", "features": features}
+    if include_text:
+        result["mda_text"] = mda
+    return result

@@ -5,6 +5,16 @@
 ## 2026-11-11
 
 - 新增根目录 GUIDE.md（查阅指南，中英双语）：按「我想找 X」的检索表 + 顶层目录地图 + data 三层 + outputs 逐项清单 + scripts 阶段对照 + 五个坑 + 待确认事项。README「仓库内容」加入口，并把过时的测试用例数 39 修正为 77（实际 77/77）。
+- 方向调整落地（换词典 + 重校准基准）：词典升 v0.2——姚加权等 (2021) 正式文本词表 3,585 正 / 1,633 负 + 扩充不确定性词表（~100 词），词频计数由子串改为 jieba 词元精确匹配（count_dictionary_tokens + jieba_userdict.txt 5,218 词）；Beneish 基准由单一 −1.78 改为 legacy/calibrated 双口径（calibrated=样本 M-Score 前 10% 分位）；src/pipeline.py、figures、narrate_results、descriptives、run_07 同步双基准，单测 77/77。
+- 新增 scripts/run_05b_recompute_text_features.py（8 进程并行全量重提取 10,052 份年报 PDF + mda_text_{year}.jsonl 缓存），后台已启动（约 2–3 小时）；旧 text_features CSV 备份到 data/interim/v0.1_text_features_backup/。
+- **v0.2 词典全量重跑完成**：run_05b 三年 10,052 份 PDF 全部重提取（2021 3,060/3,075 ok、2022 3,387、2023 3,590），run_06 特征表文本可用 9,991 条（与 v0.1 一致），run_07 重跑全部表格与图，单测 85/85。结果对比 v0.1：ρ text −0.030→−0.029、fused 0.103→0.103、AE 0.012(p=0.272)→0.009(p=0.409)；校准口径 top-10% 富集 text 1.07→0.85、fused 1.90→1.84、finance 1.87 不变；SHAP 财务 65.9%→65.4%；前 10% 重叠 finance–fused 0.828→0.817。阴性结论不变且更稳。
+- 新增 scripts/run_05c_lexicon_density.py（同一 token 流上比较 v0.1/v0.2 词表命中密度，写 outputs/tables/lexicon_density.csv）：情感词每千词元 13.41→111.30（8.30×），证明否定结论不是词表过稀所致。
+- 新增 scripts/compare_runs.py（对比两次运行的表格目录，输出样本、ρ、双基准富集率、SHAP、名单重叠与第一名的变化），用于 v0.1/v0.2 回归核对。
+- 用 v0.2 数字回填 docs/manuscript_experiment_section.md、docs/manuscript_chinese_experiment_section.md、docs/manuscript_chinese_draft.md（摘要/§5/§6）、docs/manuscript_conclusion_section.md（§6 头条结果由占位符改为实测值）、docs/team_handoff.md。
+- 重建演示稿：outputs/slides/Group12A2_Deck.pptx 与 .pdf（12 页）改用 v0.2 数字；修掉 build_slides.py 里两处硬编码（自编码器 p 值写死 0.27 → 读表 0.41、样本量写死 8,140 → 读表）。重跑 run_11_descriptives 与 run_12_narrate_results，新增 outputs/reports/v02_results_diff.md 记录 v0.1→v0.2 差异。
+- 文档同步升 v0.2：feature_dictionary / reproducibility_guide / manuscript_implementation_section / manuscript_methodology_section / manuscript_assembly_checklist；修正词典标题误写（《中国上市公司文本信息披露的情感分析》→《语调、情绪及市场影响：基于金融情绪词典》）；slides 三稿与中文稿局限表述同步（bootstrap/引导版→公开词表+代理指标）。
+- 新增 scripts/build_section5.py：单一数字源重写 §5 并把 Table 5.1–5.3 直接排进中英 Word 终稿（英文 91 段/中文 56 段槽位定位），解决交付件 11 页不足 12–15 页的硬风险；实测英文终稿 13 页。
+- 新增 scripts/build_slides.py：从 outputs/tables 生成 12 页 16:9 演示稿 outputs/slides/Group12A2_Deck.pptx 与同名 PDF，数字与 §5 同源；新增 tests/test_build_section5.py，单测 85/85。
 
 ## 2026-11-10
 

@@ -1,8 +1,9 @@
 # Slides Deck — Working Draft (12 pages / 12 minutes, Option 2)
 
-> Status: DRAFT. English slide text; speaker notes under each slide. Result pages
-> 7–9 keep `{PLACEHOLDER}` until run_07 outputs real numbers; delete this banner
-> when pasting into PowerPoint. Page-per-minute division follows docs/slides_outline.md.
+> Status: SUPERSEDED for the numbers — `scripts/build_slides.py` now generates the
+> deliverable deck (`outputs/slides/Group12A2_Deck.pptx`, 12 pages) straight from
+> `outputs/tables/`, so this file is kept only as the English wording source and
+> speaker-note reference. Edit the wording here only if you also change the script.
 
 ## Slide 1 — Title
 
@@ -32,7 +33,7 @@ Kolawole Sunday O. (MC650023) · Intro FinTech · {DATE}
 - CNINFO annual-report PDFs 2021–2023; MD&A section extracted and tokenised.
 - Sample: 3,694 manufacturing firms / 10,172 firm-years
   {PLACEHOLDER: final coverage incl. QC exclusions}.
-- Benchmark for evaluation only: Beneish M-Score (M > −1.78), never in training.
+- Benchmark for evaluation only: Beneish M-Score (legacy M > −1.78; recalibrated sample top-10%), never in training.
 
 ## Slide 4 — Pipeline Overview
 
@@ -44,7 +45,7 @@ One-directional flow: data ingestion → features → modelling → evaluation �
 - Financial (6): ROA, liabilities-to-assets, revenue growth, OCF-to-assets,
   receivables turnover, total accruals-to-assets.
 - Textual (3): Chinese readability (1 / mean sentence length), sentiment balance,
-  uncertainty ratio — from bootstrap Chinese dictionaries.
+  uncertainty ratio — from 姚加权等 (2021) full financial sentiment lexicon + expanded uncertainty list.
 - Pre-processing: 1%/99% winsorisation; subindustry-year z-scores with sparse-cell fallback.
 {PLACEHOLDER: descriptive stats mini-table}
 
@@ -73,7 +74,7 @@ One-directional flow: data ingestion → features → modelling → evaluation �
 
 ## Slide 10 — Limitations
 
-- Bootstrap dictionaries approximate domain sentiment.
+- Dictionary sentiment is a proxy, not a direct measure of misconduct.
 - Scanned reports flagged and excluded (QC log).
 - M-Score is an imperfect benchmark; scores rank review priority, they do not prove misconduct.
 

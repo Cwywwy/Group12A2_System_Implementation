@@ -26,19 +26,20 @@ Revision History:
 | 4 | System Implementation | docs/manuscript_implementation_section.md（6 页英文，已写） | 基本定稿 | 无（状态附录已更新为当前数字） |
 | 5 | Experiment & Results | docs/manuscript_experiment_section.md（模板）+ outputs/reports/results_narrative.md（run_12 自动生成） | 待真实数据 | 数据齐后跑 run_99 → run_12 出叙事 → 填表图 |
 | 6 | Conclusion | docs/manuscript_conclusion_section.md（英文草稿，已写） | 基本定稿 | 填头条结果句（1 处占位） |
-| 参考 | References | Group12A2 docx §References（21 条已全） | 需补 3 条词典来源 | 见下「待补参考文献」 |
+| 参考 | References | Group12A2 docx §References（24 条已全，含 [22]-[24] 词典来源） | 已完成 | 2026-11-10 已补入并查证出处 |
 
-## 三、待补参考文献（词典出处，proposal 21 条中缺失）
+## 三、参考文献（词典出处，已补入终稿 [22]-[24]）
 
 词典文件 `data/external/dictionaries/` 头部注释声明的来源，终稿 References 必须补全，否则 §4.3 的词典出处与参考文献不一致：
 
-1. 姚加权等 (2021)《中国上市公司文本信息披露的情感分析》——正向/负向情感词典骨架。
+1. 姚加权、冯绪、王赞钧、纪荣嵘、张维 (2021)《语调、情绪及市场影响：基于金融情绪词典》，管理科学学报 24(5): 26-46——正向/负向情感词典骨架。
 2. Loughran T, McDonald B (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. *Journal of Finance*, 66(1), 35–65. —— uncertain 词表英译来源。
-3. 曾庆生等 (2018) 年报语调研究常用词——不确定性词补充。
+3. 曾庆生、周波、张程、陈信元 (2018)《年报语调与内部人交易："表里如一"还是"口是心非"？》，管理世界 (9): 143-160——不确定性词补充。
 
-⚠️ 词典当前为「初始引导版 v0.1」（正向 38 / 负向 33 / 不确定 23 词的小子集），
-复现指南 §5 与实现章节 §4.3 均已如实披露「定稿前需替换为完整公开词表并注明版本号」；
-若最终来不及替换，须在论文局限中明确说明词典规模与引导性质（已具备披露文案）。
+✅ 词典已于 2026-11-11 升级为 v0.2 完整公开词表：正向/负向采用姚加权等 (2021) 正式文本词表
+（纯中文过滤后 3,585 正 / 1,633 负，来源 DavionWu2018/Sentiment_dictionary）；不确定性词表扩至约 100 词
+（Loughran–McDonald 2011 uncertain 中译 + 曾庆生 2018）；词频由子串计数改为 jieba 词元精确匹配。
+v0.1 引导版三文件已归档至 `data/external/dictionaries/v0.1_bootstrap_backup/`。参考文献 [22]-[24] 已于 2026-11-10 补入英文/中文终稿 References 并查证精确出处（见 CHANGELOG 2026-11-10）。
 
 ## 四、方法学事实来源（终稿核对时逐项对齐仓库）
 
@@ -60,5 +61,6 @@ Revision History:
 ## 六、风险
 
 - **4 人组 vs "up to 3 members"**：最硬风险，需尽快与教授确认，否则影响演示打分。
+- **页数不达标**：Option 2 要求 12–15 页研究稿件，当前交付 `outputs/manuscript/Group12A2_Final_EN.pdf` 实测 **11 页**（CN 版 7 页，中文版为节译稿）。差 1 页属硬指标风险，需把 Table 5.1（描述统计）、Table 5.2（Spearman）、Table 5.3（事件率/富集，双基准）真正排进 §5 正文并补一段解释，而不是放在"accompanying data appendix"里。
 - 数据缺口：FS_Comins/FS_Comscfd 未到 → 财务特征无法建 → 实验阻塞（等组员放入 data/raw/csmar/）。
 - MD&A 提取进行中（约 2–3 小时），完成后 QC 收口。

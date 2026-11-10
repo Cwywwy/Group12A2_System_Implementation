@@ -1,6 +1,8 @@
 # Group12A2 汇报幻灯片规格（12 页）
 
 > 用途：为课程论文 Option 2 的 12 分钟展示生成可编辑 PowerPoint 骨架。最终数值页只使用真实 `run_07` 输出替换占位符；不得把当前 demo 数据当作正式结果。
+>
+> 状态：已落地。`scripts/build_slides.py` 按本规格生成 `outputs/slides/Group12A2_Deck.pptx`（12 页 16:9，同名 PDF 一并输出），第 7–9、12 页的数字全部由 `outputs/tables/` 现算，改版式请改脚本而不是手改 pptx。
 
 ## 全局视觉规范
 
@@ -29,7 +31,7 @@
 | 7 | RQ1 主结果 | 左：`Rank agreement with Beneish M-Score`；右三个预留值卡：`Finance-only: {RHO_FINANCE}`、`Text-only: {RHO_TEXT}`、`Fused: {RHO_FUSED}`。结论框：`{STATE ONLY AFTER REAL RUN: whether fused exceeds finance-only.}` |
 | 8 | RQ2 可解释性 | 双栏：`Global SHAP feature group share` 预留 finance/text 条形占位；`Local explanation` 预留 top firm-year / top driver。底部 `Screening signals support review; they do not prove misconduct.` |
 | 9 | RQ3 稳健性 | 左：top-10% overlap 矩阵占位；右：`Autoencoder robustness`，预留 `{AE_RHO}`；底部：`Sensitivity thresholds: 5%, 10%, 15%.` |
-| 10 | 限制与边界 | 三张卡：`Bootstrap dictionaries`、`PDF extraction coverage`、`M-Score is an imperfect benchmark`；底部 `Outputs are review-priority signals, not misconduct labels.` |
+| 10 | 限制与边界 | 三张卡：`Dictionary sentiment is a proxy`、`PDF extraction coverage`、`M-Score is an imperfect benchmark`；底部 `Outputs are review-priority signals, not misconduct labels.` |
 | 11 | 可复现性 | checklist：`SEED=42`、`versioned scripts & CSV intermediates`、`checkpointed downloads/extraction`、`one-command workflow`。右侧命令卡：`python scripts/run_99_full_pipeline.py`。 |
 | 12 | 结论与分工 | `Conclusion: {FINAL ONE-SENTENCE FINDING}`；四成员、职责占位表；收尾 `Thank you · Questions`。 |
 

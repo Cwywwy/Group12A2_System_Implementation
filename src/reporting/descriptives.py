@@ -10,6 +10,8 @@ Module: src/reporting
 Revision History
 -----------------
 2026-11-06  initial version: coverage tables, feature summaries, benchmark flags.
+2026-11-11  benchmark section reports the recalibrated top-decile cutoff alongside
+            the legacy -1.78 flag.
 """
 from __future__ import annotations
 
@@ -84,7 +86,7 @@ def describe_feature_summary(ft: pd.DataFrame) -> pd.DataFrame:
 
 
 def describe_benchmark(ft: pd.DataFrame) -> pd.DataFrame:
-    """Beneish M-Score availability and flagged share (M > threshold)."""
+    """Beneish M-Score availability, legacy -1.78 flag, and recalibrated top-10% cutoff."""
     if "m_score" not in ft.columns:
         return pd.DataFrame()
     m = ft["m_score"]
@@ -103,6 +105,7 @@ def describe_benchmark(ft: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(rows)
     out["all_n"] = int(m.notna().sum())
     out["all_flagged_n"] = int((m > BENEISH_THRESHOLD).sum())
+    out["top10pct_threshold"] = round(float(m.quantile(0.90)), 4)
     return out
 
 
@@ -147,7 +150,7 @@ def build_descriptives_report(
 
     bench = describe_benchmark(ft)
     if not bench.empty:
-        lines.append("## 5. Beneish M-Score benchmark flags (M > -1.78)")
+        lines.append("## 5. Beneish M-Score benchmark (legacy M > -1.78; recalibrated top-10% cutoff)")
         lines.append("")
         lines.append(bench.pipe(_md_table))
         lines.append("")

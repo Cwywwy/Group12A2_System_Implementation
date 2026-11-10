@@ -1,7 +1,7 @@
 # 特征字典（Feature Dictionary）
 
 - 项目：Group12A2 · Screening Financial Disclosure Risk through Textual-Financial Feature Fusion and Explainable Anomaly Detection
-- 版本：v0.1（2026-11-05，初始版；所有词典为引导版，见 §5）
+- 版本：v0.2（2026-11-11；词典升级为完整公开词表、词频改词元匹配，基准改双口径，见 §4、§5）
 - 对应大纲：§V.A（6 金融特征）、§V.B（3 文本特征）、§V.C（Beneish M-Score 基准）
 
 本文档固化全部变量定义与公式，论文方法与复现脚本以此为准。
@@ -47,8 +47,8 @@
 ## 3. 文本特征（3 个，§V.B）
 
 - 提取：年报 PDF → 文本层（pypdf）→ 定位「管理层讨论与分析」标题，截取至下一「第X节」标题（`src/features/textual.py::locate_mda`）。扫描件无文本层 → 记 status=no_mda，逐项列入缺失报告（大纲要求）。
-- 分词：jieba（默认词典，HMM 开）；仅保留纯中文词元。
-- 词频计数：词典词在 MD&A 原文上的子串出现次数之和（确定可复现；重叠词（如「增长」与「高增长」）会计入两次，属可接受近似，v0.1 已知限制）。
+- 分词：jieba（默认词典，HMM 开）+ 加载 `data/external/dictionaries/jieba_userdict.txt` 自定义词表（含全部词典词，保证多字金融词整词切分）；仅保留纯中文词元。
+- 词频计数：词典词在 MD&A 词元序列上的**精确词元匹配**计数（`src/features/textual.py::count_dictionary_tokens`），每个词元命中一次；非子串计数，重叠词（如「增长」与「高增长」）经整词切分后各自独立计数。
 
 | 特征 | 公式 | 说明 |
 | --- | --- | --- |
@@ -70,14 +70,18 @@
   - SGAI = (sga_t/revenue_t) / (sga_{t−1}/revenue_{t−1})
   - LVGI = (total_liabilities_t/total_assets_t) / (total_liabilities_{t−1}/total_assets_{t−1})
   - TATA = (net_income_t − ocf_t) / total_assets_t
-- 用法：M > −1.78 标记为基准事件；**绝不进入训练集**，仅用于 Spearman 相关与 top-k 事件率。
+- 用法：**绝不进入训练集**，仅用于 Spearman 相关与 top-k 事件率。基准事件采用双口径：
+  - legacy：M > −1.78（Beneish 1999 原阈值；在中国样本下会标记多数样本，见结果章节讨论）。
+  - calibrated（默认）：按样本自身分布取 M-Score 前 10% 分位（`config.py::BENEISH_TOP_QUANTILE = 0.10`），避免原阈值不适用的噪声。
 
-## 5. 词典（引导版，待定稿）
+## 5. 词典（v0.2，完整公开词表）
 
-- 正向/负向：`data/external/dictionaries/financial_positive.txt` / `financial_negative.txt`。v0.1 为姚加权等 (2021)《中国上市公司文本信息披露的情感分析》公开词表的精选子集（各约 40 词），最终版替换为完整公开词表并记录版本与获取方式。
-- 不确定性：`data/external/dictionaries/uncertainty.txt`。v0.1 参考 Loughran-McDonald (2011) uncertain 词中译与曾庆生等 (2018) 语调研究常用词（约 30 词）。
-- 复现说明：词典文件逐行一词、# 开头为注释；替换词典文件即可复算，不影响代码。
+- 正向/负向：`data/external/dictionaries/financial_positive.txt` / `financial_negative.txt`。v0.2 采用姚加权等 (2021)《语调、情绪及市场影响：基于金融情绪词典》公开词表的**正式文本版**（`yuanjiaguan_2021/Yao2021_formal_sentiment_score.txt`，管理科学学报 24(5):26–46），只保留纯中文词元后得正向 3,585 词、负向 1,633 词。来源：DavionWu2018/Sentiment_dictionary（GitHub）。
+- 不确定性：`data/external/dictionaries/uncertainty.txt`。参考 Loughran-McDonald (2011) uncertain 词中译与曾庆生等 (2018) 语调研究常用词并扩充（约 100 词）。
+- 自定义词表：`data/external/dictionaries/jieba_userdict.txt`（5,218 行，「词 1000」格式），供 jieba 整词切分。
+- 复现说明：词典文件逐行一词、# 开头为注释；v0.1 引导版三文件已备份至 `data/external/dictionaries/v0.1_bootstrap_backup/`。
 
 ## 6. 版本记录
 
 - v0.1（2026-11-05）：全部公式、中间表模式、预处理规则固化；词典为引导版。
+- v0.2（2026-11-11）：词典升级为姚加权等 (2021) 完整正式文本词表（3,585 正 / 1,633 负）+ 扩充不确定性词表；词频计数由子串改为 jieba 词元精确匹配；Beneish 基准由单一 −1.78 改为 legacy/calibrated 双口径（calibrated 为样本前 10% 分位）。

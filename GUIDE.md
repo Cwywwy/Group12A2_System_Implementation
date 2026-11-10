@@ -44,14 +44,16 @@
 
 **核心结论 · Headline results**（出处 · source：[experiment_summary.md](outputs/reports/experiment_summary.md)）：
 
-有效样本 n = **8,140** firm-year（3,265 家公司，2021–2023）。Spearman ρ = if_finance **0.1357**、if_text −0.0295、
-if_fused 0.1028、ae_fused 0.0122；top-10% 富集率 = if_finance **1.2172**、if_fused 1.1761；SHAP 组贡献 财务 65.9% / 文本 34.1%。
-即：财务特征弱但显著，文本特征无增量，自编码器的稳健性未复现。
+有效样本 n = **8,140** firm-year（3,265 家公司，2021–2023）。Spearman ρ = if_finance **0.1357**、if_text −0.0293、
+if_fused 0.1034、ae_fused 0.0092（p=0.409）；top-10% 富集率 = if_finance **1.2172**（样本校准口径 1.8673）、if_fused 1.1977（1.8428）；
+SHAP 组贡献 财务 65.4% / 文本 34.6%。即：财务特征弱但显著，文本特征无增量，自编码器的稳健性未复现；
+换用姚加权等 (2021) 全量词典后（词元命中密度为旧引导版的 8.3 倍）结论不变。
 
-Valid sample n = **8,140** firm-years (3,265 firms, 2021–2023). Spearman ρ = if_finance **0.1357**, if_text −0.0295,
-if_fused 0.1028, ae_fused 0.0122; top-10% enrichment = if_finance **1.2172**, if_fused 1.1761; SHAP group contribution
-finance 65.9% / text 34.1%. In short: the financial signal is weak but significant, text features add nothing, and the
-autoencoder's robustness does not replicate.
+Valid sample n = **8,140** firm-years (3,265 firms, 2021–2023). Spearman ρ = if_finance **0.1357**, if_text −0.0293,
+if_fused 0.1034, ae_fused 0.0092 (p = 0.409); top-10% enrichment = if_finance **1.2172** (recalibrated 1.8673), if_fused 1.1977 (1.8428);
+SHAP group contribution finance 65.4% / text 34.6%. In short: the financial signal is weak but significant, text features add nothing,
+the autoencoder's robustness does not replicate, and replacing the lexicon with the full Yao et al. (2021) list (8.3x denser matches)
+does not change the conclusion.
 
 ### 1.2 看数据 · See the data
 
@@ -163,8 +165,9 @@ Organised as raw download → standardised intermediate → modelling feature ta
 
 | 文件 · File | 内容 · Contents |
 | --- | --- |
-| `Group12A2_Final_EN.docx` / `.pdf` | 英文终稿（91 段、24 条参考文献）· final English paper, 91 paragraphs, 24 references |
-| `Group12A2_Final_CN.docx` / `.pdf` | 中文终稿（53 段）· final Chinese paper, 53 paragraphs |
+| `Group12A2_Final_EN.docx` / `.pdf` | 英文终稿（含 Table 5.1–5.3，13 页、24 条参考文献）· final English paper with the three result tables, 13 pages |
+| `Group12A2_Final_CN.docx` / `.pdf` | 中文终稿（含三张表）· final Chinese paper with the same tables |
+| `source/Group12A2_Final_EN.docx`、`source/Group12A2_Final_CN.docx` | 不含表格的母版，重排 §5 时脚本从母版读 · pre-table masters used as the patch input |
 | `Group12A2_System_Implementation_EN.docx` / `.pdf` | 系统实现报告（11-10 已交）· system implementation report |
 | `Group12A2_System_Implementation_CN.docx` / `.pdf` | 同上中文版 · the same, in Chinese |
 
@@ -185,7 +188,11 @@ Organised as raw download → standardised intermediate → modelling feature ta
 `results_narrative.md`（英文结果段落 · English results text）、`pipeline_runbook.md`（全流程执行记录 · run log）、
 `autoencoder_config.json`（AE 超参存档 · autoencoder hyper-parameters）。
 
-### 4.5 `outputs/slides_preview/` 演示预览 · Slide previews
+### 4.5 `outputs/slides/` 演示稿 · Presentation
+
+`Group12A2_Deck.pptx` / `.pdf`：12 页 16:9 演示稿，数字由 `scripts/build_slides.py` 从 `outputs/tables/` 现算 · twelve-slide deck generated from the released tables.
+
+### 4.6 `outputs/slides_preview/` 演示预览 · Slide previews
 
 `page-01.png`、`page-02.png`、`contact-slide.png`。
 
@@ -210,6 +217,11 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | `run_11_descriptives.py` | 描述统计与样本覆盖 · descriptives | `outputs/reports/descriptives_summary.md` |
 | `run_12_narrate_results.py` | 读表生成英文结果段 · results narrative | `outputs/reports/results_narrative.md` |
 | `run_13_build_chinese_docx.py` | 中文 Markdown → Word · Markdown to Word | `outputs/manuscript/Group12A2_Final_CN.docx` |
+| `run_05b_recompute_text_features.py` | 换词典后全量重提取（8 进程并行）· full re-extraction | `data/interim/text_features_{年}.csv` |
+| `run_05c_lexicon_density.py` | 新旧词表命中密度对照 · lexicon density check | `outputs/tables/lexicon_density.csv` |
+| `compare_runs.py` | 两次运行的指标差异对比 · diff two result runs | 控制台报告 · console report |
+| `build_section5.py` | 由表重写 §5 并把三张表排进 Word · rewrite §5 and typeset tables | `docs/manuscript_experiment_section.md`、Word 终稿 |
+| `build_slides.py` | 由表生成 12 页演示稿 · build the twelve-slide deck | `outputs/slides/Group12A2_Deck.pptx` / `.pdf` |
 | `run_99_full_pipeline.py` | 一键全流程（`--stage` / `--skip-05`）· full pipeline | 全部 · all |
 | `scripts/archive/` | 历史一次性脚本（回填数字、转 docx、校验）· one-off scripts | — |
 

@@ -2,11 +2,12 @@
 
 File:     docs/manuscript_conclusion_section.md
 Author:   Group12A2 DSW Team
-Purpose:  conclusion section for the final manuscript (Option 2), draft with one
-          placeholders for the headline result sentence.
+Purpose:  conclusion section for the final manuscript (Option 2); headline result
+          filled from the v0.2 run (full lexicon + dual benchmark).
 
 Revision History:
   2026-11-06  initial draft.
+  2026-11-11  headline result filled with the v0.2 (full-lexicon, dual-benchmark) run.
 
 ---
 
@@ -17,17 +18,28 @@ Isolation Forest served as the primary unsupervised detector and an autoencoder 
 robustness ranking; SHAP attribution showed, at the global and firm-year levels, whether
 each score was driven by the financial or the textual group.
 
-[HEADLINE RESULT — replace after run_99/run_12: state whether the fused ranking showed a
-stronger Spearman association with the Beneish M-Score than the finance-only ranking, and
-give the top-10% event rate and enrichment ratio.]
+The headline result is negative for fusion and positive, if weakly, for the financial block.
+Across 8,140 usable firm-years from 3,265 firms, the finance-only ranking correlates with the
+Beneish M-Score at Spearman rho = 0.136 (p < 0.001), the fused ranking at 0.103, the text-only
+ranking at -0.029, and the autoencoder at 0.009 (p = 0.409). In the top-10% review queue the
+finance-only model lifts the M-Score event rate to 1.22 times the sample base rate under the
+literal Beneish -1.78 cut-off (1.87 under the recalibrated sample top-decile definition), while
+the fused model reaches 1.20 (1.84) and the text-only model 0.92 (0.85). The negative result is
+not an artefact of a thin dictionary: the full Yao et al. (2021) lexicon matches 111.3 sentiment
+terms per 1,000 MD&A tokens against 13.4 for the earlier bootstrap list, an 8.3-fold increase,
+and the conclusion is unchanged.
 
-Three conclusions follow. First, the fused textual-financial representation
-[did / did not] add incremental screening value over the finance-only representation,
-which answers RQ1 on the marginal information content of Chinese MD&A. Second, SHAP
-decomposition showed that the [financial / textual] group contributed the larger share of
-absolute importance (RQ2), indicating where a reviewer's attention is best directed.
-Third, the top-10% ranking was [stable / unstable] across review thresholds, model
-mechanisms, and sample years (RQ3), which bounds how confidently the queue can be used.
+Three conclusions follow. First, the fused textual-financial representation did not add
+incremental screening value over the finance-only representation (rho 0.103 versus 0.136), which
+answers RQ1 negatively for Chinese MD&A text measured as readability, sentiment balance, and
+uncertainty. Second, SHAP decomposition showed that the financial group contributed the larger
+share of absolute importance (65.4% versus 34.6%), indicating where a reviewer's attention is
+best directed (RQ2). Third, the top-10% ranking was partially stable: finance-only and fused
+queues overlap strongly (Jaccard 0.817), but the text-only queue barely overlaps either (0.111),
+the autoencoder does not reproduce the Isolation Forest order (rho 0.009), and the finance-only
+correlation is positive in all three years (0.103, 0.130, 0.173) while the text-only correlation
+is negative in all three - so the queue is usable as a screening signal but not as a stable risk
+label (RQ3).
 
 The main limitations are inherent to the design and are reported rather than hidden. The
 sample is confined to manufacturing and to a three-year window; the external benchmarks
