@@ -2,6 +2,10 @@
 
 按日期分组，从新到旧。
 
+## 2026-11-11
+
+- 新增根目录 GUIDE.md（查阅指南，中英双语）：按「我想找 X」的检索表 + 顶层目录地图 + data 三层 + outputs 逐项清单 + scripts 阶段对照 + 五个坑 + 待确认事项。README「仓库内容」加入口，并把过时的测试用例数 39 修正为 77（实际 77/77）。
+
 ## 2026-11-10
 
 - CSMAR 三表到位：用户把 FS_Combas/FS_Comins/FS_Comscfd.xlsx 放入 data/raw/csmar/（135.31/64.39/62.4 MB）；字段映射经 probe 验证全部正确，csmar_parser 无需改动；run_03 产出 finance_intermediate.csv（10,646 行×16 列）、run_06 产出 feature_table.csv（10,172 行×20 列）。
