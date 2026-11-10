@@ -110,6 +110,20 @@
 输出两版的样本量、ρ 与 p、两个基准下的 top-5/10/15% 富集率变化、SHAP 组份额、
 前 10% 名单重叠与第一名公司；`--old` 目录可指向无 `benchmark` 列的旧版 12 行表。
 
+### 3.1 结果变量分支评估（探索性，不入论文主表）
+
+如果想把基准从 M-Score 换成真实监管事件，先看 `outputs/reports/positive_result_branches.md`
+（7 个分支的数据来源、成本、阳性概率、风险与推荐路线）。其中"零新增数据"的分支已用脚本实测：
+
+```powershell
+& ".venv\Scripts\python.exe" "scripts/analyze_branch_beneish_components.py"
+```
+
+输出 `outputs/tables/branch_component_correlations.csv`（4 个排序 × 9 个目标 = 36 行），
+把 M-Score 拆成 DSRI/GMI/AQI/SGI/DEPI/SGAI/LVGI/TATA 八个分量分别求 Spearman ρ。
+结论：文本单独对任一分量的 |ρ| ≤ 0.064，说明"基准太粗"不是文本无信号的原因；
+这条分支只作为论文中"已排除度量层面解释"的补充证据，不改变主结果。
+
 ## 4. 可复现性关键点
 
 - 全部随机组件固定 `SEED=42`（Isolation Forest、autoencoder、SHAP 子采样）
@@ -149,6 +163,8 @@
   改表格前先确认母版干净：`outputs/manuscript/source/` 存着**不含表格**的英文/中文母版，脚本默认从母版读、往 `outputs/manuscript/` 写。直接把已插表的交付件当输入会重复插表并把段落槽位冲掉。
 - **中文终稿 Word**：`scripts/run_13_build_chinese_docx.py` 把 `docs/manuscript_chinese_draft.md` 转成 `outputs/manuscript/Group12A2_Final_CN.docx`（宋体正文/黑体标题/1.5 倍行距）。
 - **英文终稿 Word**：`outputs/manuscript/Group12A2_Final_EN.docx`，由 `scripts/archive/insert_section5_results.js` 通过 Univer 工具把真实 §5 数字写入 `PaperDraft` 后导出（§1–§6 + 24 条参考文献 + 摘要结果句），再由 `build_section5.py` 刷新 §5 与三张表。
+- **§5.6 第一版与第二版对比**：同一脚本生成 `5.6 From the First to the Second Specification` / `5.6 从第一版到第二版`，含 Table 5.4（10×3 设定对比）与两段说明；数字来自 `outputs/.tmp/v01_dual_benchmark/tables/`（冻结的第一版结果表）与 `outputs/tables/lexicon_density.csv`，缺文件时自动降级为定性表述。重建后英文终稿 101 段 4 表（14 页）、中文终稿 65 段 4 表（8 页）。
+- **两版过程的版本控制**：`git tag v0.1-baseline`（提交 `542395b`）保存第一版代码——小规模引导词典、子串计数、仅 M > −1.78 基准；`git tag v0.2-calibrated`（提交 `b700d27`）保存第二版。第一版的数据与结果另有文件级备份：`data/external/dictionaries/v0.1_bootstrap_backup/`、`data/interim/v0.1_text_features_backup/`、`data/processed/v0.1_feature_table.csv`、`outputs/.tmp/v01_prev_run/`、`outputs/.tmp/v01_dual_benchmark/`。用 `git worktree add ../v01 v0.1-baseline` 可把第一版完整检出重跑。
 - **PDF**：本机无 LibreOffice，PDF 由 Univer 导入 docx 后打印（`univer_import` → `univer_print_pdf`），终稿英文 12–15 页（满足 Option 2 页数要求）。
 - **演示幻灯片**：`scripts/build_slides.py` 读 `outputs/tables/` 生成 12 页 16:9 演示稿 `outputs/slides/Group12A2_Deck.pptx`（版式规范见 `docs/slides_deck_spec.md`），并与 §5 共用同一套数字（`build_section5.collect_numbers()`），所以正文与幻灯片不会出现两套数。重跑 `run_07` 后再跑一次脚本即可刷新；PDF 版同名输出在 `outputs/slides/Group12A2_Deck.pdf`。
 

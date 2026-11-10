@@ -220,6 +220,7 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | `run_05b_recompute_text_features.py` | 换词典后全量重提取（8 进程并行）· full re-extraction | `data/interim/text_features_{年}.csv` |
 | `run_05c_lexicon_density.py` | 新旧词表命中密度对照 · lexicon density check | `outputs/tables/lexicon_density.csv` |
 | `compare_runs.py` | 两次运行的指标差异对比 · diff two result runs | 控制台报告 · console report |
+| `analyze_branch_beneish_components.py` | 把 M-Score 拆成八个分量，逐分量查文本是否有信号 · branch probe per Beneish component | `outputs/tables/branch_component_correlations.csv` |
 | `build_section5.py` | 由表重写 §5 并把三张表排进 Word · rewrite §5 and typeset tables | `docs/manuscript_experiment_section.md`、Word 终稿 |
 | `build_slides.py` | 由表生成 12 页演示稿 · build the twelve-slide deck | `outputs/slides/Group12A2_Deck.pptx` / `.pdf` |
 | `run_99_full_pipeline.py` | 一键全流程（`--stage` / `--skip-05`）· full pipeline | 全部 · all |

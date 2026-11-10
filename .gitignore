@@ -29,3 +29,15 @@ Copyright notice.pdf
 # OS
 Thumbs.db
 .DS_Store
+# scratch artifacts from layout probing are not deliverables
+outputs/.tmp/shots/
+outputs/.tmp/shots56/
+outputs/.tmp/deck_png2/
+outputs/.tmp/deck_png3/
+outputs/.tmp/deck_v02_png/
+outputs/.tmp/deck_v02b_png/
+outputs/.tmp/test_*
+outputs/.tmp/probe*
+outputs/.tmp/*_check.pdf
+outputs/.tmp/*_check.univer
+outputs/.tmp/cn_paras.txt
