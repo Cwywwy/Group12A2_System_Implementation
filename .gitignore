@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.coverage
+.tox/
+
+# Raw data and licensed datasets (41 GB, excluded from the repository)
+data/
+
+# CNINFO listed-company dataset (licensed)
+STK_*
+
+# Univer course scaffolding / materials (large binaries)
+*.univer
+
+# Course requirement documents (not part of the paper deliverable)
+Grading and Report Requirement for FinTech 2026-Modified.docx
+Financial_Disclosure_Quality_Assessment_English_Outline(1).docx
+Copyright notice.pdf
+
+# Word / Office temporary files
+~$*
+
+# OS
+Thumbs.db
+.DS_Store

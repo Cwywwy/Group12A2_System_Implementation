@@ -1,0 +1,20 @@
+{
+  "hidden_layer_sizes": [
+    16,
+    8,
+    16
+  ],
+  "bottleneck_width": 8,
+  "activation": "relu",
+  "solver": "adam",
+  "alpha": 0.0001,
+  "batch_size": 256,
+  "learning_rate_init": 0.001,
+  "max_iter": 500,
+  "early_stopping": true,
+  "n_iter_no_change": 20,
+  "validation_fraction": 0.1,
+  "tol": 1e-06,
+  "random_state": 42,
+  "loss": "squared_error"
+}
