@@ -679,7 +679,7 @@ def render_markdown(num: dict, text: dict) -> str:
         lines += [block, ""]
     lines += ["## 5.4 Robustness (RQ3: ranking stability)", "", text["s54"], ""]
     lines += ["## 5.5 Discussion and Limitations", "", text["s55"], ""]
-    lines += ["## " + text["s56_heading"][3:], "", text["s56a"], "", text["t54_caption"], ""]
+    lines += ["## " + text["s56_heading"], "", text["s56a"], "", text["t54_caption"], ""]
     lines += [to_pipe(_table_54(num)), "", text["s56b"], ""]
     lines += [
         "## Suggested figures (paths from run_07)",
@@ -1202,7 +1202,7 @@ def render_markdown_cn(num: dict, text: dict) -> str:
         "",
         text["s55"],
         "",
-        "## " + text["s56_heading"].split(" ", 1)[1],
+        "## " + text["s56_heading"],
         "",
         text["s56a"],
         "",
