@@ -2,12 +2,12 @@
 
 生成时间：2026-11-11 04:27
 对比对象：文本特征 v0.1（引导词典、子串计数） → v0.2（姚加权等 2021 正式词表、jieba 词元匹配）
-数据来源：`outputs/.tmp/v01_dual_benchmark/tables`（旧）与 `outputs/tables`（新）
+数据来源：`outputs/archive_v0.1/tables`（旧）与 `outputs/tables`（新）
 生成命令：`.venv\Scripts\python.exe scripts\compare_runs.py --old ... --new ...`
 
 > 结论：换词典后阴性结论不变，且可以排除"词表太薄"这一解释；数字层面对比见下。
 
-```old = outputs\.tmp\v01_dual_benchmark\tables (v0.1 bootstrap lexicon)
+```old = outputs\archive_v0.1\tables (v0.1 bootstrap lexicon)
 new = outputs\tables (v0.2 Yao2021 lexicon)
 
 Sample (v0.1 bootstrap lexicon -> v0.2 Yao2021 lexicon)

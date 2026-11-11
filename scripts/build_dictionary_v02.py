@@ -12,6 +12,7 @@ Usage: .venv/Scripts/python scripts/build_dictionary_v02.py
 Revision History
 ----------------
 2026-11-11  initial version: parse Yao2021_formal_sentiment_score.txt (word score),
+2026-11-11  repoint paths at data/archive_v0.1 and outputs/branches.
             split positive/negative, keep pure-Chinese words, write pipeline files
             and a jieba user dictionary; back up the v0.1 files first.
 """
@@ -25,7 +26,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 DICT_DIR = PROJECT_ROOT / "data" / "external" / "dictionaries"
 SRC = DICT_DIR / "yuanjiaguan_2021" / "Yao2021_formal_sentiment_score.txt"
-BACKUP_DIR = DICT_DIR / "v0.1_bootstrap_backup"
+BACKUP_DIR = PROJECT_ROOT / "data" / "archive_v0.1" / "dictionaries"
 
 POS_OUT = DICT_DIR / "financial_positive.txt"
 NEG_OUT = DICT_DIR / "financial_negative.txt"

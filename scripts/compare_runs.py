@@ -9,7 +9,7 @@ Module: scripts
 
 Usage
 -----
-python scripts/compare_runs.py --old outputs/.tmp/v01_prev_run/tables \
+python scripts/compare_runs.py --old outputs/archive_v0.1/prev_run/tables \
                                --new outputs/tables [--label-old v0.1 --label-new v0.2]
 
 The script only reads the CSV tables written by scripts/run_07_experiment.py and
@@ -18,6 +18,7 @@ prints a diff report to stdout; it never modifies the run outputs.
 Revision History
 ----------------
 2026-11-11  initial version.
+2026-11-11  repoint paths at data/archive_v0.1 and outputs/branches.
 """
 from __future__ import annotations
 
@@ -78,7 +79,7 @@ def section(title: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--old", type=str, default="outputs/.tmp/v01_prev_run/tables")
+    parser.add_argument("--old", type=str, default="outputs/archive_v0.1/prev_run/tables")
     parser.add_argument("--new", type=str, default="outputs/tables")
     parser.add_argument("--label-old", type=str, default="v0.1")
     parser.add_argument("--label-new", type=str, default="v0.2")

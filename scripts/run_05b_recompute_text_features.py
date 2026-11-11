@@ -15,6 +15,7 @@ Usage:
 Revision History
 -----------------
 2026-11-11  initial version: multiprocessing recompute + MD&A JSONL cache.
+2026-11-11  repoint paths at data/archive_v0.1 and outputs/branches.
 """
 import argparse
 import json
@@ -34,7 +35,7 @@ from src.features.textual import extract_mda_features  # noqa: E402
 
 CHECKPOINT_EVERY = 500
 DEFAULT_WORKERS = 8
-BACKUP_DIR = DATA_INTERIM / "v0.1_text_features_backup"
+BACKUP_DIR = PROJECT_ROOT / "data" / "archive_v0.1" / "text_features"
 
 # The numeric feature columns, in the same order as run_05's output CSV.
 CSV_COLUMNS = (

@@ -22,6 +22,7 @@ negative, combined sentiment and uncertainty terms.
 Revision History
 ----------------
 2026-11-11  initial version.
+2026-11-11  repoint paths at data/archive_v0.1 and outputs/branches.
 """
 from __future__ import annotations
 
@@ -39,7 +40,7 @@ from src.config import DATA_INTERIM  # noqa: E402
 from src.features.textual import tokenise  # noqa: E402
 
 DICT_DIR = PROJECT_ROOT / "data" / "external" / "dictionaries"
-OLD_DIR = DICT_DIR / "v0.1_bootstrap_backup"
+OLD_DIR = PROJECT_ROOT / "data" / "archive_v0.1" / "dictionaries"
 OUT_CSV = PROJECT_ROOT / "outputs" / "tables" / "lexicon_density.csv"
 
 

@@ -4,6 +4,12 @@
 
 ## 2026-11-11
 
+- 项目文件整理（数据源 / 第一版 / 第二版 / 各分支 / 定稿 五层）：新建 `course_materials/`（课程原始材料与版权声明）、`data/archive_v0.1/`（引导词典、v0.1 文本特征、v0.1 特征表）、`outputs/archive_v0.1/`（v0.1 全套结果表 + 最早一轮图表）、`outputs/branches/`（四份分支报告与探针 CSV）；`data/raw/csmar/STK_LISTEDCOINFOANL.xlsx` 归入数据源；旧的单文件提交副本、`docs/CSMAR guide.docx`、演示 SVG 草稿、`slides_preview/` 与全部版式探针移出并删除（46 MB）。
+- 新增 `docs/project_layout.md`（项目文件地图：五层结构、定稿清单、v0.1 归档、分支表、数据源树、清理方式），并由 `README.md`、`GUIDE.md` §0/§2/§3/§4、各目录 README 统一指向它。
+- 路径重定向：`src/config.py` 的 `LISTEDCO_INFO_XLSX`、`build_section5.py` 的 `V01_TABLES`、`build_dictionary_v02.py`/`run_05b`/`run_05c` 的备份目录、`analyze_branch_beneish_components.py` 与 `run_07b_event_models.py` 的输出、`compare_runs.py` 的默认 `--old`，以及 16 处文档引用同步到新位置。
+- 新增 `scripts/run_15_cleanup_workspace.py`：清理 `_trash/`、`outputs/.tmp/*.univer`、根目录课程材料重复副本与缓存目录；默认干跑，`--apply` 才删除，并逐个报告被占用的文件。`scripts/_bench_extract.py`、`scripts/read_slide_structure.js` 移入 `scripts/archive/`。
+- `.gitignore` 增 `_trash/` 与 `outputs/.tmp/`；遗留 18 个探针 `.univer` 与根目录两份课程材料副本（合计约 472 MB）因 Univer 服务持有句柄暂未删除，重启 DSH 后跑一次 `run_15 --apply` 即可。
+- 单测 **114/114 通过**。
 - 新增 §5.7「真实监管结果外部检验」（英文 `5.7 External Validation Against Real Regulatory Outcomes`）与 Table 5.5（5 个排序 × 非标审计意见 / t+1 披露类违规的 AUC 与前 10% 富集）、Table 5.6（按公司分组 5 折交叉验证 AUC 与 ΔAUC）：`build_section5.py` 增加 `_load_event_numbers()`、`_table_55`/`_table_56`（含中文版）、`_section57_en`/`_section57_cn`、`_abstract_external`/`_abstract_external_cn` 与中英文 Word 插入逻辑（英文锚 §5.5 正文、中文锚 `CN_SLOT_S55`）；markdown、中英 docx 与中文完整稿同步。
 - 新增 `src/data_ingestion/event_parser.py`（解析 CSMAR `FIN_Audit.xlsx` / `STK_Violation_Main.xlsx`：跳过中英标签两行、代码 zfill(6)、审计意见窄/宽口径分类、违规 t+1 对齐）、`scripts/run_03b_build_event_table.py`（→ `data/processed/event_table.csv`，188 条非标意见 2.31%、327 条宽口径 4.02%、1,757 条 t+1 违规 21.58%、1,196 条披露类 14.69%）。
 - 新增 `src/evaluation/event_eval.py`（bootstrap AUC/lift/recall、`StratifiedGroupKFold(groups=symbol)` OOF 预测、配对 ΔAUC）与 `scripts/run_07b_event_models.py`（四个标签 × 五个排序 × 三组特征 × 两种模型）；实测财务单独排序对非标意见 AUC 0.640、前 10% 富集 2.18×、Beneish 代理仅 0.405；文本单独在所有标签都弱于财务，但融合的 ΔAUC 全为正（+0.007~+0.026，5/8 区间不含 0）。

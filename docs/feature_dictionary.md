@@ -79,7 +79,7 @@
 - 正向/负向：`data/external/dictionaries/financial_positive.txt` / `financial_negative.txt`。v0.2 采用姚加权等 (2021)《语调、情绪及市场影响：基于金融情绪词典》公开词表的**正式文本版**（`yuanjiaguan_2021/Yao2021_formal_sentiment_score.txt`，管理科学学报 24(5):26–46），只保留纯中文词元后得正向 3,585 词、负向 1,633 词。来源：DavionWu2018/Sentiment_dictionary（GitHub）。
 - 不确定性：`data/external/dictionaries/uncertainty.txt`。参考 Loughran-McDonald (2011) uncertain 词中译与曾庆生等 (2018) 语调研究常用词并扩充（约 100 词）。
 - 自定义词表：`data/external/dictionaries/jieba_userdict.txt`（5,218 行，「词 1000」格式），供 jieba 整词切分。
-- 复现说明：词典文件逐行一词、# 开头为注释；v0.1 引导版三文件已备份至 `data/external/dictionaries/v0.1_bootstrap_backup/`。
+- 复现说明：词典文件逐行一词、# 开头为注释；v0.1 引导版三文件已备份至 `data/archive_v0.1/dictionaries/`。
 
 ## 6. 版本记录
 

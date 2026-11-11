@@ -1,7 +1,7 @@
 # 分支 2：年报问询函作为结果变量——数据可得性核验与爬虫设计
 
 - 版本：v1（2026-11-11）
-- 范围：`outputs/reports/positive_result_branches.md` 中"分支 2"的取数可行性部分
+- 范围：`outputs/branches/positive_result_branches.md` 中"分支 2"的取数可行性部分
 - 结论口径：所有接口均在本机实测（`Invoke-WebRequest`），未实测的部分明确标注"未能验证"
 - 本文只做调研与设计，不改动任何既有脚本或数据文件
 

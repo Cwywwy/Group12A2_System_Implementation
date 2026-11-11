@@ -39,7 +39,7 @@ Revision History:
 ✅ 词典已于 2026-11-11 升级为 v0.2 完整公开词表：正向/负向采用姚加权等 (2021) 正式文本词表
 （纯中文过滤后 3,585 正 / 1,633 负，来源 DavionWu2018/Sentiment_dictionary）；不确定性词表扩至约 100 词
 （Loughran–McDonald 2011 uncertain 中译 + 曾庆生 2018）；词频由子串计数改为 jieba 词元精确匹配。
-v0.1 引导版三文件已归档至 `data/external/dictionaries/v0.1_bootstrap_backup/`。参考文献 [22]-[24] 已于 2026-11-10 补入英文/中文终稿 References 并查证精确出处（见 CHANGELOG 2026-11-10）。
+v0.1 引导版三文件已归档至 `data/archive_v0.1/dictionaries/`。参考文献 [22]-[24] 已于 2026-11-10 补入英文/中文终稿 References 并查证精确出处（见 CHANGELOG 2026-11-10）。
 
 ## 四、方法学事实来源（终稿核对时逐项对齐仓库）
 

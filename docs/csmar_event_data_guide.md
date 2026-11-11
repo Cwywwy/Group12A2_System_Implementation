@@ -13,7 +13,7 @@
 | 数据 | 状态 | 位置 |
 | --- | --- | --- |
 | 财务三表（2020–2023，合并） | ✅ 已有 | `data/raw/csmar/FS_Combas.xlsx` 等 |
-| 上市公司基本信息（行业、上市日期、上市状态） | ✅ 已有 | 根目录 `STK_LISTEDCOINFOANL.xlsx`（含 `IndustryCodeC` / `LISTINGDATE` / `LISTINGSTATE_EN`） |
+| 上市公司基本信息（行业、上市日期、上市状态） | ✅ 已有 | `data/raw/csmar/STK_LISTEDCOINFOANL.xlsx`（含 `IndustryCodeC` / `LISTINGDATE` / `LISTINGSTATE_EN`） |
 | **财务报告审计意见** | ❌ 待下载 | §3 表 A |
 | **会计差错更正 / 财务重述** | ❌ 待下载 | §3 表 B |
 | **违规处理 / 监管处罚** | ❌ 待下载 | §3 表 C |

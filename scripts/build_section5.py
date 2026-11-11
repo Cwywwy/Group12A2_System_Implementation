@@ -34,7 +34,7 @@ REPORTS = ROOT / "outputs" / "reports"
 PROCESSED = ROOT / "data" / "processed"
 DOCS = ROOT / "docs"
 MANUSCRIPT = ROOT / "outputs" / "manuscript"
-V01_TABLES = ROOT / "outputs" / ".tmp" / "v01_dual_benchmark" / "tables"
+V01_TABLES = ROOT / "outputs" / "archive_v0.1" / "tables"
 
 EVENT_TABLE = ROOT / "data" / "processed" / "event_table.csv"
 EVENT_RANKING = TABLES / "event_ranking_metrics.csv"
@@ -115,7 +115,7 @@ def _p_text(p_value: float) -> str:
 def _load_v01_metrics() -> dict:
     """Return the first-specification (v0.1) metrics, empty dict when unavailable.
 
-    The v0.1 run is archived under ``outputs/.tmp/v01_dual_benchmark/tables`` so that
+    The v0.1 run is archived under ``outputs/archive_v0.1/tables`` so that
     the manuscript can compare the two specifications without re-running the old
     lexicon.  Missing files simply disable the comparison table.
     """

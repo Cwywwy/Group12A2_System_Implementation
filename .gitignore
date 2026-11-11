@@ -43,3 +43,12 @@ outputs/.tmp/*_check.univer
 outputs/.tmp/cn_paras.txt
 outputs/.tmp/*.pdf
 outputs/.tmp/*.py
+
+# staged-for-deletion folder from the 2026-11-11 tidy-up
+_trash/
+
+# scratch area for rebuild intermediates
+outputs/.tmp/
+
+# one-off scripts live in scripts/archive/
+outputs/.tmp_*.py

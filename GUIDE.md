@@ -49,7 +49,7 @@ if_fused 0.1034、ae_fused 0.0092（p=0.409）；top-10% 富集率 = if_finance 
 SHAP 组贡献 财务 65.4% / 文本 34.6%。即：财务特征弱但显著，文本特征无增量，自编码器的稳健性未复现；
 换用姚加权等 (2021) 全量词典后（词元命中密度为旧引导版的 8.3 倍）结论不变。
 
-**外部检验 · External validation**（论文 §5.7，出处 · source：[event_branch_results.md](outputs/reports/event_branch_results.md)）：
+**外部检验 · External validation**（论文 §5.7，出处 · source：[event_branch_results.md](outputs/branches/event_branch_results.md)）：
 以 CSMAR 非标审计意见（188 条 = 2.31%）为真实结果，财务单独排序 **AUC 0.640**、前 10% 队列富集 **2.18 倍**；
 Beneish 代理对同一结果 AUC 仅 **0.405**（低于随机），说明第一版的代理基准不只是噪声，方向也相反。
 按公司分组的交叉验证中，文本块对四类真实事件的 AUC 增量全部为正（+0.007 ~ +0.026，5/8 组合区间不含 0），
@@ -112,7 +112,7 @@ weaker than finance-only on every label.
 | 演示文案（12 页讲稿）· Slide script | [slides_deck_draft.md](docs/slides_deck_draft.md) |
 | 演示视觉规范与精确文案 · Slide spec | [slides_deck_spec.md](docs/slides_deck_spec.md) |
 | 演示大纲 · Slide outline | [slides_outline.md](docs/slides_outline.md) |
-| 前两页草稿（SVG）· First two pages | `docs/slides/page_01.svg`、`page_02.svg` |
+| 演示成品 · Deck | [Group12A2_Deck.pptx](outputs/slides/Group12A2_Deck.pptx)（12 页，由 `scripts/build_slides.py` 生成） |
 | 小组分工与交接 · Roles and handover | [team_handoff.md](docs/team_handoff.md) |
 | 管线计划书与模块划分 · Pipeline plan | [course_paper_pipeline_plan.md](.github/plans/course_paper_pipeline_plan.md) |
 | 为什么代码这样改 · Why the code changed | [CHANGELOG.md](CHANGELOG.md) |
@@ -121,34 +121,30 @@ weaker than finance-only on every label.
 
 ## 2. 顶层目录地图 · Top-level map
 
+> 完整地图见 [project_layout.md](docs/project_layout.md)（数据源 / 第一版 / 第二版 / 各分支 / 定稿 五层）。
+> The full map is in `docs/project_layout.md`.
+
 | 路径 · Path | 里面是什么 · Contents | 能否分享 · Shareable |
 | --- | --- | --- |
-| `.github/plans/` | 管线计划书（模块划分、阶段拆分）· Pipeline plan | 可以 · yes |
-| `.venv/` | Python 3.12 虚拟环境 · virtual environment | **不要**打包 · **do not** ship |
-| `data/` | 全部数据，约 41 GB · all data, c. 41 GB | **不可外传** · **not** to be redistributed（CSMAR / 巨潮授权） |
-| `docs/` | 17 份文档：指南、字典、手稿分节、slides、交接 · 17 documents | 可以 · yes |
-| `outputs/` | 全部结果产物：表、图、报告、论文 · all deliverables | 可以 · yes |
-| `scripts/` | 分阶段入口脚本 `run_00`–`run_99` · stage entry points | 可以 · yes |
+| `outputs/manuscript/` | **定稿**（中英文论文 + 系统实现报告）· final deliverables | 可以 · yes |
+| `outputs/slides/` | **演示稿**（12 页 pptx / pdf）· the twelve-slide deck | 可以 · yes |
+| `outputs/tables/` `figures/` `reports/` | **第二版结果**（当前全部表、图、报告）· current results | 可以 · yes |
+| `outputs/branches/` | **各分支**调研与报告（换结果变量、Beneish 分量探针、问询函爬虫）· branch studies | 可以 · yes |
+| `outputs/archive_v0.1/` | **第一版结果**（v0.1 词典的旧表与旧图）· first-version results | 可以 · yes |
+| `data/raw/` | 原始数据：巨潮年报 PDF（41 GB）、CSMAR 三表、CSMAR 事件表 · raw downloads | **不可外传** · **not** to be redistributed |
+| `data/interim/` `data/processed/` | 中间表与当前建模表 / 事件表 · intermediate and current tables | 可以（体积大）· yes, but bulky |
+| `data/external/` | 姚加权 2021 情感词典、北交所代码对照 · external lexicons and mappings | 词典可分享 · lexicon yes |
+| `data/archive_v0.1/` | **第一版数据**（引导词典、旧文本特征、旧特征表）· first-version data | 可以 · yes |
+| `course_materials/` | 课程原始材料（Univer 文档、评分要求、版权声明）· course material | 内部使用 · internal |
+| `docs/` | 文档：复现指南、数据下载指引、特征字典、论文分节、交接 · documents | 可以 · yes |
+| `scripts/` | 分阶段入口脚本 + 组装脚本 · stage entry points and builders | 可以 · yes |
 | `src/` | 源码包（采集 / 特征 / 模型 / 评估 / 报告）· source package | 可以 · yes |
-| `tests/` | 77 个 pytest 用例 + 历史报告 · 77 tests and past reports | 可以 · yes |
-| `.pytest_cache/` | 测试缓存 · test cache | 可删 · deletable |
-| 根目录散落文件 · loose root files | 课程材料、论文正文、样本框原始表 · course material, paper, source table | 见第 7 节 · see section 7 |
+| `tests/` | 114 个 pytest 用例 + 历史报告 · 114 tests and past reports | 可以 · yes |
+| `_trash/` | 本轮整理移出的历史文件（确认后整体删除）· files staged for deletion | 可删 · deletable |
+| `.venv/` `.pytest_cache/` | 虚拟环境与测试缓存 · environment and cache | **不要**打包 · **do not** ship |
 
-**根目录散落文件清单 · Loose root files**
-
-| 文件 · File | 作用 · Purpose |
-| --- | --- |
-| `Group12A2 Screening Financial Disclosure Risk through Textual-Financial Feature Fusion and Explainable Anomaly Detection Evidence from Chinese A-share Manufacturing Firms, 2021–2023.docx` | README 指定的**论文正文** · the paper text as designated by README |
-| `Grading and Report Requirement for FinTech 2026-Modified.docx` | 教授给的评分与报告要求 · course grading and report requirements |
-| `Financial_Disclosure_Quality_Assessment_English_Outline(1).docx` | 题目英文提纲 / 要求 · English assignment outline |
-| `grading_rubric.univer` | 评分细则（Univer 格式）· grading rubric |
-| `course_paper_materials.univer` | 课程资料合集（Univer 格式）· course material bundle |
-| `Copyright notice.pdf` | CSMAR 与巨潮数据的版权声明（演示附录要用）· data licence notice |
-| `STK_LISTEDCOINFOANL.xlsx` + `STK_LISTEDCOINFOANL[DES][xlsx].txt` | CSMAR 上市公司基本信息表（选样框输入）· listed-company table; the `.txt` is the field description |
-| `README.md` | 项目总览与复现三步 · project overview |
-| `CHANGELOG.md` | 按日期分组的变更日志 · dated change log |
-| `GUIDE.md` | 本文件 · this file |
-| `requirements.txt` / `pytest.ini` | 依赖固定版本 / 测试配置 · pinned dependencies / test configuration |
+**根目录只留以下文件 · Loose root files**：`README.md`、`GUIDE.md`、`CHANGELOG.md`、`requirements.txt`、`pytest.ini`、`.gitignore`。
+其余课程材料已归入 `course_materials/`，样本框原始表已归入 `data/raw/csmar/`。
 
 ---
 
@@ -164,6 +160,7 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | 外部 · external | `data/external/` | `bse_920_code_mapping.csv` 北交所新老代码对照 248 行 · BSE code mapping | 公开网页整理 · public web |
 | 中间 · interim | `data/interim/` | `finance_intermediate.csv`（三表标准化，20,103 行）、`text_features_{2021,2022,2023}.csv`、`demo_feature_table.csv`（240 行演示用） | `run_03_build_finance_intermediate` / `run_05` / `run_03_make_demo_data` |
 | 特征 · features | `data/processed/feature_table.csv` | 最终建模表 10,172 行 × 20 列：样本框 + 6 金融特征 + M-Score + 3 文本特征 + 质量标记 · final modelling table | `run_06` |
+| 归档 · archive | `data/archive_v0.1/` | 第一版的引导词典、旧文本特征与旧特征表，仅供对比与复现 · first-version lexicons, text features and feature table |
 | 过程 · process | `data/processed/*.csv` | 样本框、下载清单、审计、QC、下载与修复日志 · frame, checklist, audit, QC and logs | `run_01`/`04`/`08`/`09`/`10` |
 
 > 中间表与特征表行数不同是正常的：10,172 是全部 firm-year，8,140 是 9 个特征 + M-Score 全部齐全的子集——论文报的是后者。
@@ -183,30 +180,40 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | `Group12A2_System_Implementation_EN.docx` / `.pdf` | 系统实现报告（11-10 已交）· system implementation report |
 | `Group12A2_System_Implementation_CN.docx` / `.pdf` | 同上中文版 · the same, in Chinese |
 
-### 4.2 `outputs/tables/` 表 · Tables（7 张 · 7 files）
+### 4.2 `outputs/tables/` 表 · Tables
 
 `model_metrics.csv`（Spearman ρ）、`topk_metrics.csv`（top-k 事件率 / 富集 · event and enrichment）、
 `anomaly_scores.csv`（逐公司得分 · per-firm scores）、`ranking_overlap.csv`（RQ3）、`shap_global.csv`、
-`shap_group_contributions.csv`、`shap_local_top1.csv`（RQ2）。
+`shap_group_contributions.csv`、`shap_local_top1.csv`（RQ2）、`lexicon_density.csv`（词典命中密度 · lexicon density）、
+`event_ranking_metrics.csv` 与 `event_supervised_metrics.csv`（§5.7 外部检验 · external validation）。
 
 ### 4.3 `outputs/figures/` 图 · Figures（8 张 · 8 files）
 
 `score_distribution_if_finance.png`、`score_distribution_if_text.png`、`score_distribution_if_fused.png`、
 `score_distribution_ae_fused.png`、`topk_enrichment.png`、`group_contributions.png`、`shap_importance.png`、`ranking_overlap.png`。
 
-### 4.4 `outputs/reports/` 报告 · Reports（5 份 · 5 files）
+### 4.4 `outputs/reports/` 报告 · Reports
 
 `experiment_summary.md`（结论摘要 · headline results）、`descriptives_summary.md`（描述统计 · descriptives）、
 `results_narrative.md`（英文结果段落 · English results text）、`pipeline_runbook.md`（全流程执行记录 · run log）、
-`autoencoder_config.json`（AE 超参存档 · autoencoder hyper-parameters）。
+`v02_results_diff.md`（v0.1 → v0.2 差异 · first-version diff）、`autoencoder_config.json`（AE 超参存档）。
 
 ### 4.5 `outputs/slides/` 演示稿 · Presentation
 
 `Group12A2_Deck.pptx` / `.pdf`：12 页 16:9 演示稿，数字由 `scripts/build_slides.py` 从 `outputs/tables/` 现算 · twelve-slide deck generated from the released tables.
 
-### 4.6 `outputs/slides_preview/` 演示预览 · Slide previews
+### 4.6 `outputs/branches/` 分支调研 · Branch studies
 
-`page-01.png`、`page-02.png`、`contact-slide.png`。
+| 文件 · File | 分支 · Branch | 结论 · Conclusion |
+| --- | --- | --- |
+| `positive_result_branches.md` | 换真实结果变量的七条路线 | t+1 问询函首选、非标审计意见兜底 |
+| `branch_component_correlations.csv` | Beneish 八分量探针 | 文本对任一分量 \|ρ\| ≤ 0.064，"基准太粗"被排除 |
+| `branch2_inquiry_crawler_spec.md` | 问询函自建爬虫 | 深交所最干净，沪市靠巨潮补，4.5–5 人日 |
+| `event_branch_results.md` | 真实监管事件（已升格为 §5.7） | 财务 AUC 0.640、富集 2.18×；Beneish 仅 0.405 |
+
+### 4.7 `outputs/archive_v0.1/` 第一版结果 · First-version results
+
+`tables/`（旧 ρ、top-k、SHAP、重叠；§5.6 的 Table 5.4 从这里读数）与 `prev_run/`（最早一轮图表，`compare_runs.py` 的默认 `--old`）。
 
 ---
 
@@ -236,7 +243,7 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | `run_05b_recompute_text_features.py` | 换词典后全量重提取（8 进程并行）· full re-extraction | `data/interim/text_features_{年}.csv` |
 | `run_05c_lexicon_density.py` | 新旧词表命中密度对照 · lexicon density check | `outputs/tables/lexicon_density.csv` |
 | `compare_runs.py` | 两次运行的指标差异对比 · diff two result runs | 控制台报告 · console report |
-| `analyze_branch_beneish_components.py` | 把 M-Score 拆成八个分量，逐分量查文本是否有信号 · branch probe per Beneish component | `outputs/tables/branch_component_correlations.csv` |
+| `analyze_branch_beneish_components.py` | 把 M-Score 拆成八个分量，逐分量查文本是否有信号 · branch probe per Beneish component | `outputs/branches/branch_component_correlations.csv` |
 | `build_section5.py` | 由表重写 §5 并把三张表排进 Word · rewrite §5 and typeset tables | `docs/manuscript_experiment_section.md`、Word 终稿 |
 | `build_slides.py` | 由表生成 12 页演示稿 · build the twelve-slide deck | `outputs/slides/Group12A2_Deck.pptx` / `.pdf` |
 | `run_99_full_pipeline.py` | 一键全流程（`--stage` / `--skip-05`）· full pipeline | 全部 · all |

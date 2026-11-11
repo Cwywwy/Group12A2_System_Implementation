@@ -34,7 +34,7 @@
 
 ## 2. 分支 1 的实测结果（已排除）
 
-脚本：`scripts/analyze_branch_beneish_components.py`，输出 `outputs/tables/branch_component_correlations.csv`（36 行 = 4 个排序 × 9 个目标，n = 8,140）。
+脚本：`scripts/analyze_branch_beneish_components.py`，输出 `outputs/branches/branch_component_correlations.csv`（36 行 = 4 个排序 × 9 个目标，n = 8,140）。
 
 Spearman ρ（节选）：
 

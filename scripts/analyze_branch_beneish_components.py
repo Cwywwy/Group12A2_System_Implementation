@@ -10,7 +10,7 @@ opposite signs. A text measure can be informative about one ratio and still show
 nothing against the aggregate, so this script correlates every anomaly ranking
 with each component separately and writes a table for the manuscript notes.
 
-Outputs: outputs/tables/branch_component_correlations.csv
+Outputs: outputs/branches/branch_component_correlations.csv
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from src.features.beneish import BENEISH_COEFFICIENTS, compute_beneish  # noqa: 
 
 FINANCE = PROJECT_ROOT / "data" / "interim" / "finance_intermediate.csv"
 SCORES = PROJECT_ROOT / "outputs" / "tables" / "anomaly_scores.csv"
-OUT = PROJECT_ROOT / "outputs" / "tables" / "branch_component_correlations.csv"
+OUT = PROJECT_ROOT / "outputs" / "branches" / "branch_component_correlations.csv"
 COMPONENTS = list(BENEISH_COEFFICIENTS) + ["m_score"]
 MODELS = ["if_finance", "if_text", "if_fused", "ae_fused"]
 

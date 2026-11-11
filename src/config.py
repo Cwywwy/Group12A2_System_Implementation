@@ -9,6 +9,7 @@ Revision History
 -----------------
 2026-11-05  initial version: seeds, thresholds, paths, feature definitions.
 2026-11-11  add BENEISH_TOP_QUANTILE (sample-calibrated top-decile benchmark).
+2026-11-11  repoint paths at data/archive_v0.1 and outputs/branches.
 """
 from pathlib import Path
 
@@ -26,7 +27,9 @@ FIGURES = OUTPUTS / "figures"
 REPORTS = OUTPUTS / "reports"
 
 # Raw input already provided by the team.
-LISTEDCO_INFO_XLSX = PROJECT_ROOT / "STK_LISTEDCOINFOANL.xlsx"
+LISTEDCO_INFO_XLSX = (
+    PROJECT_ROOT / "data" / "raw" / "csmar" / "STK_LISTEDCOINFOANL.xlsx"
+)
 
 # ---- Sample design (fixed in the proposal, confirmed 2026-11-05) ----
 SAMPLE_YEARS = (2021, 2022, 2023)

@@ -25,6 +25,7 @@ Two blocks are produced:
 Revision History
 ----------------
 2026-11-11  initial version: external-outcome evaluation for branch 3.
+2026-11-11  repoint paths at data/archive_v0.1 and outputs/branches.
 """
 import argparse
 import sys
@@ -47,7 +48,7 @@ from src.evaluation.event_eval import (  # noqa: E402
 DEFAULT_EVENTS = PROJECT_ROOT / "data" / "processed" / "event_table.csv"
 DEFAULT_SCORES = TABLES / "anomaly_scores.csv"
 DEFAULT_FEATURES = PROJECT_ROOT / "data" / "processed" / "feature_table.csv"
-REPORT = PROJECT_ROOT / "outputs" / "reports" / "event_branch_results.md"
+REPORT = PROJECT_ROOT / "outputs" / "branches" / "event_branch_results.md"
 
 LABELS = (
     ("mod_opinion", "Modified audit opinion (narrow)"),
