@@ -4,6 +4,11 @@
 
 ## 2026-11-11
 
+- 新增 `docs/csmar_event_data_guide.md`：第二轮换结果变量所需的 CSMAR 数据指引——审计意见（必下）、会计差错更正/财务重述、违规处理、特别处理（可选）四张表的库路径、时间窗口、目标字段、导出命名（`data/raw/csmar_events/`）、自检方法、七个常见坑与"按订阅权限怎么选"的决策树；同时说明问询函不在 CSMAR 及其替代来源（交易所官网爬虫 / CNRDS / textdata）。
+- 新增 `scripts/run_00c_inspect_csmar_export.py`：打印任意 CSMAR 导出（xlsx/csv）的 sheet、列名、行数、证券代码样例与长度，用于下载后 5 分钟自检（前导零、行数量级、意见类型列可读性），并已用根目录 `STK_LISTEDCOINFOANL.xlsx` 验证。
+- 新增 `data/raw/csmar_events/README.md`（本地目录，data/ 不入库）：规定四个文件名与《数据说明》保留规则。
+- `GUIDE.md`：§1.2 数据来源表新增事件变量指引入口，§5 阶段表新增 `run_00c_inspect_csmar_export.py`。
+
 - 新增 §5.6「从第一版到第二版：做法改进与结果差异」（英文 `5.6 From the First to the Second Specification`）与 Table 5.4（10×3 设定对比）：`build_section5.py` 增加 `_load_v01_metrics()`（读冻结的 `outputs/.tmp/v01_dual_benchmark/tables/`）、`_table_54()` / `_table_54_cn()`、`s56a`/`s56b` 段落与 Word 插入逻辑（英文锚 §5.5 正文、中文锚 `CN_SLOT_S55`），markdown 与中英 docx 同步。
 - 终稿重建：英文 `Group12A2_Final_EN.docx` 101 段 4 表 → PDF **14 页**（在 12–15 页要求内），中文 `Group12A2_Final_CN.docx` 65 段 4 表 → PDF 8 页；摘要结果句同步为 v0.2（融合 0.103 / 财务 0.136 / 校准 1.84 / legacy 1.20）。
 - 两版过程固化：新增 git tag `v0.1-baseline`（提交 `542395b`，第一版代码：引导词典 + 子串计数 + 仅 M > −1.78）与 `v0.2-calibrated`（第二版），第一版的数据/结果备份清单写入复现指南 §7；新增提交 `b700d27` 与清理提交 `4687e46`（不再跟踪版式探针临时文件）。

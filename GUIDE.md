@@ -67,6 +67,7 @@ does not change the conclusion.
 | 数据质量标记 · QC flags | `data/processed/qc_summary.csv`、`qc_issues.csv` |
 | 每个特征的公式与来源字段 · Feature formulas | [feature_dictionary.md](docs/feature_dictionary.md) |
 | 数据怎么下载的 · How the data was obtained | [csmar_download_guide.md](docs/csmar_download_guide.md)、[cninfo_download_guide.md](docs/cninfo_download_guide.md) |
+| 换事件结果变量要再下什么 · Event-variable downloads | [csmar_event_data_guide.md](docs/csmar_event_data_guide.md)（审计意见/重述/违规三张表 + 决策树） |
 
 ### 1.3 重跑 · Re-run
 
@@ -203,6 +204,7 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | 脚本 · Script | 作用 · Purpose | 产出 · Output |
 | --- | --- | --- |
 | `run_00_env_check.py` | 环境就绪探针（14 项输入）· readiness probe | 终端输出 · terminal |
+| `run_00c_inspect_csmar_export.py` | 检查新下载的 CSMAR 导出（sheet/列名/行数/代码前导零）· inspect a CSMAR export | 终端输出 · terminal |
 | `run_01_sample.py` | 生成样本框与下载清单 · build sample frame and checklist | `data/processed/manufacturing_sample_frame.csv` |
 | `run_02_download_annual_reports.py` | 巨潮年报 PDF 批量下载（断点续传）· batch download, resumable | `data/raw/cninfo/{年}/*.pdf` |
 | `run_03_build_finance_intermediate.py` | CSMAR 三表 → 金融中间表 · three statements → finance table | `data/interim/finance_intermediate.csv` |
