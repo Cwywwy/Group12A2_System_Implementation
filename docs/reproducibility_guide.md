@@ -182,7 +182,7 @@
 实验结果与论文正文由以下脚本/产物承接，最终 Word 都在 `outputs/manuscript/`：
 
 - **英文结果段落**：`scripts/run_12_narrate_results.py` 读 `outputs/tables/` 生成 `outputs/reports/results_narrative.md`（RQ1–RQ3 自动填数）。
-- **§5 重写与表格排版**：`scripts/build_section5.py` 读 `outputs/tables/*.csv` 与 `data/processed/feature_table.csv`，同时生成三份产物——英文 §5 markdown（`docs/manuscript_experiment_section.md`）、中文 §5 markdown（`docs/manuscript_chinese_experiment_section.md`）、以及把 Table 5.1–5.3 直接排进正文的 Word 终稿（`--docx` 改英文、`--docx-cn` 改中文）。所有数字与表格都由 CSV 现算，重跑 `run_07` 后一条命令即可刷新；脚本按固定的段落槽位（英文稿 91 段 / 中文稿 56 段）定位，若 Word 段落结构改变需同步 `SLOT_*` / `CN_SLOT_*` 常量。
+- **§5 重写与表格排版**：`scripts/build_section5.py` 读 `outputs/tables/*.csv` 与 `data/processed/feature_table.csv`，同时生成三份产物——英文 §5 markdown（`docs/manuscript_experiment_section.md`）、中文 §5 markdown（`docs/manuscript_chinese_experiment_section.md`）、以及把 Table 5.1–5.3 直接排进正文的 Word 终稿（`--docx` 改英文、`--docx-cn` 改中文）。所有数字与表格都由 CSV 现算，重跑 `run_07` 后一条命令即可刷新；脚本按固定的段落槽位（英文母版 91 段 / 中文母版 56 段）定位，若 Word 段落结构改变需同步 `SLOT_*` / `CN_SLOT_*` 常量。
   改表格前先确认母版干净：`outputs/manuscript/source/` 存着**不含表格**的英文/中文母版，脚本默认从母版读、往 `outputs/manuscript/` 写。直接把已插表的交付件当输入会重复插表并把段落槽位冲掉。
 - **中文终稿 Word**：`scripts/run_13_build_chinese_docx.py` 把 `docs/manuscript_chinese_draft.md` 转成 `outputs/manuscript/Group12A2_Final_CN.docx`（宋体正文/黑体标题/1.5 倍行距）。
 - **英文终稿 Word**：`outputs/manuscript/Group12A2_Final_EN.docx`，由 `scripts/archive/insert_section5_results.js` 通过 Univer 工具把真实 §5 数字写入 `PaperDraft` 后导出（§1–§6 + 24 条参考文献 + 摘要结果句），再由 `build_section5.py` 刷新 §5 与三张表。

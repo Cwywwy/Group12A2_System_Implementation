@@ -61,6 +61,6 @@ v0.1 引导版三文件已归档至 `data/external/dictionaries/v0.1_bootstrap_b
 ## 六、风险
 
 - **4 人组 vs "up to 3 members"**：最硬风险，需尽快与教授确认，否则影响演示打分。
-- **页数不达标**：Option 2 要求 12–15 页研究稿件，当前交付 `outputs/manuscript/Group12A2_Final_EN.pdf` 实测 **11 页**（CN 版 7 页，中文版为节译稿）。差 1 页属硬指标风险，需把 Table 5.1（描述统计）、Table 5.2（Spearman）、Table 5.3（事件率/富集，双基准）真正排进 §5 正文并补一段解释，而不是放在"accompanying data appendix"里。
+- **页数（已解决）**：Option 2 要求 12–15 页研究稿件。原交付件英文 11 页 / 中文 7 页，低于下限；现已把 Table 5.1–5.6 全部排进 §5 正文（`scripts/build_section5.py`），并新增 §5.6 两版对比与 §5.7 真实事件外部检验，重建后英文 **15 页**、中文 **9 页**，落在要求区间内。新增内容时若超过 15 页，先用 `BODY_LINE_SPACING` / `_fit_body_spacing()` 收敛正文行距，不要删结果。
 - 数据缺口：FS_Comins/FS_Comscfd 未到 → 财务特征无法建 → 实验阻塞（等组员放入 data/raw/csmar/）。
 - MD&A 提取进行中（约 2–3 小时），完成后 QC 收口。
