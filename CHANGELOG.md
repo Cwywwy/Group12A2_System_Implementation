@@ -2,6 +2,13 @@
 
 按日期分组，从新到旧。
 
+## 2026-11-12
+
+- 新增 `scripts/run_16_verify_manuscript.py`：用当前 `outputs/tables/` 与 `outputs/manuscript/source/` 母版重建中英 docx，与交付件逐段落、逐表格比对，并抽查头条数字（事件 AUC 0.640 / Beneish 0.405、校准富集 1.867）与章节标记（§5.6、§5.7、Table 5.5/5.6），最后打印交付件页数与时间。交付前跑一次即可确认「定稿 = 当前管线输出」。
+- 交付件自检结果：EN 109 段 / 6 表、CN 73 段 / 6 表，与重建结果**完全一致**；PDF 分别为 15 页与 9 页。
+- 修正过期计数：`GUIDE.md` 的「77 个用例」与 `docs/reproducibility_guide.md` 的「当前 77 个」改为 114；`GUIDE.md` 阶段表补 `run_16_verify_manuscript.py` 一行。
+- 遗留：`outputs/slides/Group12A2_Deck.pptx` 仍是 11-11 04:29 的版本，数字为第二版但**尚未加入 §5.7 外部检验**（结论页仍写 "MD&A text features add none"）。
+
 ## 2026-11-11
 
 - 项目文件整理（数据源 / 第一版 / 第二版 / 各分支 / 定稿 五层）：新建 `course_materials/`（课程原始材料与版权声明）、`data/archive_v0.1/`（引导词典、v0.1 文本特征、v0.1 特征表）、`outputs/archive_v0.1/`（v0.1 全套结果表 + 最早一轮图表）、`outputs/branches/`（四份分支报告与探针 CSV）；`data/raw/csmar/STK_LISTEDCOINFOANL.xlsx` 归入数据源；旧的单文件提交副本、`docs/CSMAR guide.docx`、演示 SVG 草稿、`slides_preview/` 与全部版式探针移出并删除（46 MB）。
