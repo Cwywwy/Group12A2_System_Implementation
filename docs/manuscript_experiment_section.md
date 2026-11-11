@@ -92,6 +92,39 @@ Table 5.4. First and second specifications: what changed and what it did to the 
 
 Table 5.4 summarises the two specifications. The lexicon was replaced by the full Chinese financial sentiment list of Yao et al. (2021), uncertainty terms were expanded, substring counting was replaced by jieba token matching, and the single threshold was supplemented by a sample-calibrated top-decile definition: the sentiment measure matches 111.3 terms per 1,000 MD&A tokens against 13.4 in the first specification (8.3 times denser). The substantive answer does not move: the text-only rank correlation goes from -0.030 to -0.029, the fused correlation from 0.103 to 0.103, and the autoencoder from 0.012 (p = 0.272) to 0.009 (p = 0.409); under the recalibrated benchmark the text-only top-10% enrichment falls from 1.07 to 0.85. The improvement is therefore in the credibility of the null, not in its sign - the second specification removes the two most obvious measurement objections while leaving RQ1 answered negatively. Both specifications are retained: the frozen v0.1 lexicons, the cached MD&A text, and the archived result tables are stored in the repository, and scripts/compare_runs.py reproduces the comparison reported here.
 
+## 5.7 External Validation Against Real Regulatory Outcomes
+
+The Beneish M-Score is only a proxy for earnings manipulation, and the preceding subsections have shown it is a poor one in this sample. We therefore validate the scores against two real CSMAR outcomes: the audit opinion on the fiscal-year report (FIN_Audit) and exchange violation announcements (STK_Violation_Main). The narrow opinion label equals one for any opinion other than unqualified; the wide label also counts unqualified opinions with an explanatory paragraph. The violation label equals one when an announcement falls in t+1, either any violation or the disclosure-related subset (delayed disclosure, misstatement, material omission, fictitious profit or assets), which keeps that test forward-looking and extends the window to 2025.
+
+Both outcomes cover all 8,140 firm-years, so this is an external validation rather than a subsample check. Modified opinions are rare: 188 (2.31%), or 327 (4.02%) counting explanatory paragraphs, at rates of 2021: 3.0%, 2022: 2.3%, 2023: 1.8% - the enforcement cycle rather than a firm property. Violations are common because they mix disclosure problems with trading and governance offences: 1,757 (21.58%) received some announcement in t+1 and 1,196 (14.69%) a disclosure-related one.
+
+Table 5.5. Ranking quality against real outcomes: opinion = modified audit opinion, violation = disclosure-related announcement in t+1, lift = top-10% queue event rate over the base rate.
+
+| Score | AUC: opinion | AUC: violation t+1 | Lift: opinion | Lift: violation |
+| --- | --- | --- | --- | --- |
+| finance-only IF | 0.640 | 0.549 | 2.18 | 1.27 |
+| text-only IF | 0.524 | 0.500 | 1.06 | 0.93 |
+| fused IF | 0.618 | 0.533 | 1.97 | 1.22 |
+| fused AE | 0.471 | 0.484 | 0.90 | 0.94 |
+| Beneish M-Score | 0.405 | 0.475 | 1.33 | 0.99 |
+
+Table 5.5 reports ranking quality. The finance-only Isolation Forest transfers to the real outcome: AUC 0.640 [0.604, 0.677] for a modified opinion, with the top-10% queue at 2.18 times the base rate and covering 21.8% of modified opinions. Text alone is close to chance (0.524 [0.481, 0.568]), the fused score sits between (0.618 [0.576, 0.656]), and the autoencoder falls below chance (0.471 [0.427, 0.509]). Most striking is the benchmark: the Beneish M-Score orders modified-opinion firms below the rest of the sample (0.405 [0.351, 0.458]), so the proxy behind RQ1 points the wrong way relative to what auditors did. For forward violations every score is weaker (best 0.549 [0.532, 0.566]), as expected when the outcome mixes disclosure quality with regulator attention.
+
+Table 5.6. Out-of-fold AUC under firm-grouped five-fold cross-validation, with the increment of the fused block over finance-only.
+
+| Feature set | Model | AUC: opinion | ΔAUC vs finance | AUC: violation t+1 | ΔAUC vs finance |
+| --- | --- | --- | --- | --- | --- |
+| Finance only | Logit | 0.778 | - | 0.606 | - |
+| Finance only | Gradient boosting | 0.746 | - | 0.642 | - |
+| Text only | Logit | 0.685 | - | 0.569 | - |
+| Text only | Gradient boosting | 0.590 | - | 0.533 | - |
+| Fused | Logit | 0.799 | 0.020 | 0.620 | 0.014 |
+| Fused | Gradient boosting | 0.772 | 0.026 | 0.649 | 0.006 |
+
+Table 5.6 asks the complementary supervised question: given the labels, does the text block add rank information beyond the financial block? Text alone is weaker than finance alone (0.685 versus 0.778 for modified opinions), so the issue is complementarity. Under firm-grouped cross-validation the logistic model reaches 0.778 on financial features and 0.799 fused, an increment of +0.020 [-0.002, +0.043]; gradient boosting gives +0.026 [+0.002, +0.049], and the disclosure-violation label gives +0.014 [+0.003, +0.024] and +0.006 [-0.004, +0.019]. Across the 8 label-by-model combinations the increment is positive in 8 and its interval excludes zero in 5 - small but consistent, and opposite to the Beneish comparison in §5.2.
+
+Two caveats keep this from being a clean positive headline. First, the audit opinion is contemporaneous with the fiscal year, so Table 5.5 measures identification of risky disclosures rather than forecasting; only the violation label is a genuine forecast, and there the scores are weak. Second, both labels are produced by auditors and regulators whose capacity varies over time and across firms, so the measurement error is not classical. The substantive reading is a construct mismatch: MD&A tone and readability say something about the disclosure process auditors police, but little about the accounting-manipulation construct the Beneish benchmark measures. RQ1's negative answer therefore stands for the Beneish target, while against real audit outcomes the text block carries a small but detectable increment - the more defensible claim.
+
 ## Suggested figures (paths from run_07)
 
 1. outputs/figures/score_distribution_if_fused.png (main text)

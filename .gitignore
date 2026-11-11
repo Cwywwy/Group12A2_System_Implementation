@@ -41,3 +41,5 @@ outputs/.tmp/probe*
 outputs/.tmp/*_check.pdf
 outputs/.tmp/*_check.univer
 outputs/.tmp/cn_paras.txt
+outputs/.tmp/*.pdf
+outputs/.tmp/*.py

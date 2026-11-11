@@ -4,6 +4,13 @@
 
 ## 2026-11-11
 
+- 新增 §5.7「真实监管结果外部检验」（英文 `5.7 External Validation Against Real Regulatory Outcomes`）与 Table 5.5（5 个排序 × 非标审计意见 / t+1 披露类违规的 AUC 与前 10% 富集）、Table 5.6（按公司分组 5 折交叉验证 AUC 与 ΔAUC）：`build_section5.py` 增加 `_load_event_numbers()`、`_table_55`/`_table_56`（含中文版）、`_section57_en`/`_section57_cn`、`_abstract_external`/`_abstract_external_cn` 与中英文 Word 插入逻辑（英文锚 §5.5 正文、中文锚 `CN_SLOT_S55`）；markdown、中英 docx 与中文完整稿同步。
+- 新增 `src/data_ingestion/event_parser.py`（解析 CSMAR `FIN_Audit.xlsx` / `STK_Violation_Main.xlsx`：跳过中英标签两行、代码 zfill(6)、审计意见窄/宽口径分类、违规 t+1 对齐）、`scripts/run_03b_build_event_table.py`（→ `data/processed/event_table.csv`，188 条非标意见 2.31%、327 条宽口径 4.02%、1,757 条 t+1 违规 21.58%、1,196 条披露类 14.69%）。
+- 新增 `src/evaluation/event_eval.py`（bootstrap AUC/lift/recall、`StratifiedGroupKFold(groups=symbol)` OOF 预测、配对 ΔAUC）与 `scripts/run_07b_event_models.py`（四个标签 × 五个排序 × 三组特征 × 两种模型）；实测财务单独排序对非标意见 AUC 0.640、前 10% 富集 2.18×、Beneish 代理仅 0.405；文本单独在所有标签都弱于财务，但融合的 ΔAUC 全为正（+0.007~+0.026，5/8 区间不含 0）。
+- 页数收敛：加入 §5.7 后英文终稿一度 16 页（超 12–15 页），新增 `BODY_LINE_SPACING = 1.45` 与 `_fit_body_spacing()`（只压原本 1.5 倍的正文段落）→ 英文 109 段 6 表 15 页、中文 73 段 6 表 9 页。
+- 文档同步：`docs/manuscript_chinese_draft.md` 新增中文 §5.7 与摘要/结论外部检验句；`docs/manuscript_conclusion_section.md` 新增第四点结论并改写局限段；`docs/reproducibility_guide.md` 新增 §3.2（事件数据管线四脚本、两张表、`--boot` 用法）与 §7 §5.7/行距条目；`docs/team_handoff.md` 升 v0.3（新交付件段数与页数、外部检验数字、新命令）；`GUIDE.md` 更新头条数字、阶段表两行与交付件页数。
+- 单测：`tests/test_build_section5.py` 新增 Table 5.5/5.6 中英形状、ΔAUC 列与 §5.7 段落断言，全套 **114/114 通过**。
+- 新增 `scripts/run_14_publish_pdfs.py`：把 `outputs/.tmp/final_*.pdf` 覆盖到 `outputs/manuscript/`，逐个报告被 Acrobat/WPS 锁定的目标（退出码 2），避免手工复制时的静默失败。
 - 新增 `docs/csmar_event_data_guide.md`：第二轮换结果变量所需的 CSMAR 数据指引——审计意见（必下）、会计差错更正/财务重述、违规处理、特别处理（可选）四张表的库路径、时间窗口、目标字段、导出命名（`data/raw/csmar_events/`）、自检方法、七个常见坑与"按订阅权限怎么选"的决策树；同时说明问询函不在 CSMAR 及其替代来源（交易所官网爬虫 / CNRDS / textdata）。
 - 新增 `scripts/run_00c_inspect_csmar_export.py`：打印任意 CSMAR 导出（xlsx/csv）的 sheet、列名、行数、证券代码样例与长度，用于下载后 5 分钟自检（前导零、行数量级、意见类型列可读性），并已用根目录 `STK_LISTEDCOINFOANL.xlsx` 验证。
 - 新增 `data/raw/csmar_events/README.md`（本地目录，data/ 不入库）：规定四个文件名与《数据说明》保留规则。

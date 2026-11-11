@@ -124,6 +124,29 @@
 结论：文本单独对任一分量的 |ρ| ≤ 0.064，说明"基准太粗"不是文本无信号的原因；
 这条分支只作为论文中"已排除度量层面解释"的补充证据，不改变主结果。
 
+### 3.2 真实监管事件外部检验（论文 §5.7、表 5.5 与表 5.6）
+
+数据来源为 CSMAR 两张事件表，放在 `data/raw/csmar_events/`（不入库）：
+
+| 文件 | 内容 | 用途 |
+| --- | --- | --- |
+| `FIN_Audit.xlsx` | 审计意见（`Accper` 会计期间、`Audittyp` 意见类型） | 非标审计意见标签（窄口径：保留/无法表示/否定；宽口径另含带强调事项段） |
+| `STK_Violation_Main.xlsx` | 违规处理（`DeclareDate` 公告日、`ViolationType`/`ViolationTypeID` 类型） | 违规标签，按公告年 t+1 对齐到年报年 t；`DISCLOSURE_CODES` P2501–P2506 为披露类 |
+
+两张表都是 CSMAR 的「英文代码行 + 中文标签行 + 单位行 + 数据行」格式，解析器会丢弃前两行并按 `zfill(6)` 还原证券代码。
+
+```powershell
+# 1) 解析事件表并对齐到分析样本（8,140 个公司—年度）
+& ".venv\Scripts\python.exe" "scripts\run_03b_build_event_table.py"
+
+# 2) 无监督排序 + 有监督交叉验证（--boot 控制 bootstrap 次数，默认 1000，报告用 400 即可）
+& ".venv\Scripts\python.exe" "scripts\run_07b_event_models.py" --boot 400
+```
+
+产物：`data/processed/event_table.csv`（键 `symbol` + `fiscal_year`，含四个 0/1 标签与 `opinion_class`）、`data/processed/event_table.json`（覆盖率与事件率）、`outputs/tables/event_ranking_metrics.csv`（每个 label×分数：AUC 与 bootstrap 区间、PR-AUC、top-5/10/15% 富集率与召回）、`outputs/tables/event_supervised_metrics.csv`（按 `symbol` 分组的 5 折 OOF AUC，含 `delta_fused_vs_finance` 与 `delta_text_vs_finance` 两行）、`outputs/reports/event_branch_results.md`（表 5.5 与表 5.6 的文字版）。
+
+要点：①分组交叉验证用 `StratifiedGroupKFold(groups=symbol)`，避免同一公司跨折泄漏；②`delta_text_vs_finance` 全为负，`delta_fused_vs_finance` 全为正但很小，论文只能写"融合有小而一致的增量"；③审计意见与年报同期，属识别而非预测，只有 t+1 违规是严格前瞻；④Beneish 代理对非标意见的 AUC 为 0.405（低于随机），是本论文最值得强调的反差。
+
 ## 4. 可复现性关键点
 
 - 全部随机组件固定 `SEED=42`（Isolation Forest、autoencoder、SHAP 子采样）
@@ -163,9 +186,11 @@
   改表格前先确认母版干净：`outputs/manuscript/source/` 存着**不含表格**的英文/中文母版，脚本默认从母版读、往 `outputs/manuscript/` 写。直接把已插表的交付件当输入会重复插表并把段落槽位冲掉。
 - **中文终稿 Word**：`scripts/run_13_build_chinese_docx.py` 把 `docs/manuscript_chinese_draft.md` 转成 `outputs/manuscript/Group12A2_Final_CN.docx`（宋体正文/黑体标题/1.5 倍行距）。
 - **英文终稿 Word**：`outputs/manuscript/Group12A2_Final_EN.docx`，由 `scripts/archive/insert_section5_results.js` 通过 Univer 工具把真实 §5 数字写入 `PaperDraft` 后导出（§1–§6 + 24 条参考文献 + 摘要结果句），再由 `build_section5.py` 刷新 §5 与三张表。
-- **§5.6 第一版与第二版对比**：同一脚本生成 `5.6 From the First to the Second Specification` / `5.6 从第一版到第二版`，含 Table 5.4（10×3 设定对比）与两段说明；数字来自 `outputs/.tmp/v01_dual_benchmark/tables/`（冻结的第一版结果表）与 `outputs/tables/lexicon_density.csv`，缺文件时自动降级为定性表述。重建后英文终稿 101 段 4 表（14 页）、中文终稿 65 段 4 表（8 页）。
+- **§5.6 第一版与第二版对比**：同一脚本生成 `5.6 From the First to the Second Specification` / `5.6 从第一版到第二版`，含 Table 5.4（10×3 设定对比）与两段说明；数字来自 `outputs/.tmp/v01_dual_benchmark/tables/`（冻结的第一版结果表）与 `outputs/tables/lexicon_density.csv`，缺文件时自动降级为定性表述。
+- **§5.7 真实监管结果外部检验**：同一脚本生成 `5.7 External Validation Against Real Regulatory Outcomes` / `5.7 面向真实监管结果的外部检验`，含 Table 5.5（5×5：四个排序 + Beneish 代理对非标意见与 t+1 违规的 AUC 与前 10% 富集）与 Table 5.6（7×6：分组交叉验证 AUC 与 ΔAUC）；数字来自 3.2 节两个事件脚本，缺表时整节自动省略。重建后英文终稿 109 段 6 表（15 页）、中文终稿 73 段 6 表（9 页）。
+- **行距收敛**：正文原本 1.5 倍行距，加入 §5.7 后英文稿一度 16 页（超出 12–15 页要求），脚本用 `BODY_LINE_SPACING = 1.45` 与 `_fit_body_spacing()` 把正文压到 15 页；只调整原本 1.5 倍的正文段落，标题、表格与脚注不动。若后续再增内容，优先压缩这段函数而不是删正文。
 - **两版过程的版本控制**：`git tag v0.1-baseline`（提交 `542395b`）保存第一版代码——小规模引导词典、子串计数、仅 M > −1.78 基准；`git tag v0.2-calibrated`（提交 `b700d27`）保存第二版。第一版的数据与结果另有文件级备份：`data/external/dictionaries/v0.1_bootstrap_backup/`、`data/interim/v0.1_text_features_backup/`、`data/processed/v0.1_feature_table.csv`、`outputs/.tmp/v01_prev_run/`、`outputs/.tmp/v01_dual_benchmark/`。用 `git worktree add ../v01 v0.1-baseline` 可把第一版完整检出重跑。
-- **PDF**：本机无 LibreOffice，PDF 由 Univer 导入 docx 后打印（`univer_import` → `univer_print_pdf`），终稿英文 12–15 页（满足 Option 2 页数要求）。
+- **PDF**：本机无 LibreOffice，PDF 由 Univer 导入 docx 后打印（`univer_import` → `univer_print_pdf`），终稿英文 12–15 页（满足 Option 2 页数要求）。注意 `outputs/manuscript/*.pdf` 常被 Acrobat/WPS 占用，打印时先落到 `outputs/.tmp/`，关闭阅读器后再跑 `scripts/run_14_publish_pdfs.py` 覆盖（脚本会逐个报告仍被锁定的目标，退出码 2）。
 - **演示幻灯片**：`scripts/build_slides.py` 读 `outputs/tables/` 生成 12 页 16:9 演示稿 `outputs/slides/Group12A2_Deck.pptx`（版式规范见 `docs/slides_deck_spec.md`），并与 §5 共用同一套数字（`build_section5.collect_numbers()`），所以正文与幻灯片不会出现两套数。重跑 `run_07` 后再跑一次脚本即可刷新；PDF 版同名输出在 `outputs/slides/Group12A2_Deck.pdf`。
 
 论文正文的数字全部来自第 1–6 节的管线输出，不写死任何无法由脚本复现的常量。

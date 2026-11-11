@@ -49,11 +49,22 @@ if_fused 0.1034、ae_fused 0.0092（p=0.409）；top-10% 富集率 = if_finance 
 SHAP 组贡献 财务 65.4% / 文本 34.6%。即：财务特征弱但显著，文本特征无增量，自编码器的稳健性未复现；
 换用姚加权等 (2021) 全量词典后（词元命中密度为旧引导版的 8.3 倍）结论不变。
 
+**外部检验 · External validation**（论文 §5.7，出处 · source：[event_branch_results.md](outputs/reports/event_branch_results.md)）：
+以 CSMAR 非标审计意见（188 条 = 2.31%）为真实结果，财务单独排序 **AUC 0.640**、前 10% 队列富集 **2.18 倍**；
+Beneish 代理对同一结果 AUC 仅 **0.405**（低于随机），说明第一版的代理基准不只是噪声，方向也相反。
+按公司分组的交叉验证中，文本块对四类真实事件的 AUC 增量全部为正（+0.007 ~ +0.026，5/8 组合区间不含 0），
+但文本单独在所有标签上都弱于财务单独 —— 诚实的表述是"融合有小而一致的互补增量"，不是"文本很强"。
+
 Valid sample n = **8,140** firm-years (3,265 firms, 2021–2023). Spearman ρ = if_finance **0.1357**, if_text −0.0293,
 if_fused 0.1034, ae_fused 0.0092 (p = 0.409); top-10% enrichment = if_finance **1.2172** (recalibrated 1.8673), if_fused 1.1977 (1.8428);
 SHAP group contribution finance 65.4% / text 34.6%. In short: the financial signal is weak but significant, text features add nothing,
 the autoencoder's robustness does not replicate, and replacing the lexicon with the full Yao et al. (2021) list (8.3x denser matches)
 does not change the conclusion.
+
+Against real modified audit opinions (188 firm-years, 2.31%), the finance-only ranking reaches AUC **0.640** with **2.18x**
+top-10% enrichment, while the Beneish proxy scores **0.405** (below chance); grouped cross-validation gives the text block a
+small but consistently positive AUC increment (+0.007 to +0.026, 5 of 8 intervals excluding zero) even though text-only is
+weaker than finance-only on every label.
 
 ### 1.2 看数据 · See the data
 
@@ -166,8 +177,8 @@ Organised as raw download → standardised intermediate → modelling feature ta
 
 | 文件 · File | 内容 · Contents |
 | --- | --- |
-| `Group12A2_Final_EN.docx` / `.pdf` | 英文终稿（含 Table 5.1–5.3，13 页、24 条参考文献）· final English paper with the three result tables, 13 pages |
-| `Group12A2_Final_CN.docx` / `.pdf` | 中文终稿（含三张表）· final Chinese paper with the same tables |
+| `Group12A2_Final_EN.docx` / `.pdf` | 英文终稿（含 Table 5.1–5.6，15 页、24 条参考文献）· final English paper with six result tables, 15 pages |
+| `Group12A2_Final_CN.docx` / `.pdf` | 中文终稿（含同样六张表，9 页）· final Chinese paper with the same six tables |
 | `source/Group12A2_Final_EN.docx`、`source/Group12A2_Final_CN.docx` | 不含表格的母版，重排 §5 时脚本从母版读 · pre-table masters used as the patch input |
 | `Group12A2_System_Implementation_EN.docx` / `.pdf` | 系统实现报告（11-10 已交）· system implementation report |
 | `Group12A2_System_Implementation_CN.docx` / `.pdf` | 同上中文版 · the same, in Chinese |
@@ -209,16 +220,19 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | `run_02_download_annual_reports.py` | 巨潮年报 PDF 批量下载（断点续传）· batch download, resumable | `data/raw/cninfo/{年}/*.pdf` |
 | `run_03_build_finance_intermediate.py` | CSMAR 三表 → 金融中间表 · three statements → finance table | `data/interim/finance_intermediate.csv` |
 | `run_03_make_demo_data.py` | 生成 240 行演示数据（冒烟用）· demo data for smoke tests | `data/interim/demo_feature_table.csv` |
+| `run_03b_build_event_table.py` | CSMAR 审计意见/违规 → 四个 0/1 事件标签 · event labels aligned to the sample | `data/processed/event_table.csv`、`event_table.json` |
 | `run_04_audit_downloads.py` | 下载审计（缺失 / 过小 / 年份错位）· download audit | `data/processed/download_audit.csv` |
 | `run_05_extract_mda_features.py` | MD&A 文本特征提取（增量、可续跑）· MD&A features, resumable | `data/interim/text_features_{年}.csv` |
 | `run_06_build_feature_table.py` | 合成最终特征表 · assemble the feature table | `data/processed/feature_table.csv` |
 | `run_07_experiment.py` | 建模 + 评估 + 出图 + 摘要 · modelling and evaluation | `outputs/tables/`、`figures/`、`reports/` |
+| `run_07b_event_models.py` | 真实监管事件外部检验（`--boot`）· external-outcome validation | `event_ranking_metrics.csv`、`event_supervised_metrics.csv`、`reports/event_branch_results.md` |
 | `run_08_qc_report.py` | 数据质量标记与汇总 · quality flags | `data/processed/qc_summary.csv`、`qc_issues.csv` |
 | `run_09_repair_downloads.py` | 按审计定向重下（默认 dry-run）· targeted re-download | `data/processed/repair_log_*.csv` |
 | `run_10_bse_legacy_download.py` | 北交所旧代码补下 · BSE legacy-code download | 同上 · as above |
 | `run_11_descriptives.py` | 描述统计与样本覆盖 · descriptives | `outputs/reports/descriptives_summary.md` |
 | `run_12_narrate_results.py` | 读表生成英文结果段 · results narrative | `outputs/reports/results_narrative.md` |
 | `run_13_build_chinese_docx.py` | 中文 Markdown → Word · Markdown to Word | `outputs/manuscript/Group12A2_Final_CN.docx` |
+| `run_14_publish_pdfs.py` | 把 Univer 打印好的 PDF 覆盖到交付目录（需先关闭 Acrobat/WPS）· publish printed PDFs | `outputs/manuscript/*.pdf` |
 | `run_05b_recompute_text_features.py` | 换词典后全量重提取（8 进程并行）· full re-extraction | `data/interim/text_features_{年}.csv` |
 | `run_05c_lexicon_density.py` | 新旧词表命中密度对照 · lexicon density check | `outputs/tables/lexicon_density.csv` |
 | `compare_runs.py` | 两次运行的指标差异对比 · diff two result runs | 控制台报告 · console report |

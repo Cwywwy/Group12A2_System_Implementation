@@ -201,3 +201,114 @@ def test_prose_includes_section_56():
         for key in ("s56_heading", "s56a", "t54_caption", "s56b"):
             assert payload[key], key
         assert "8.3" in payload["s56b"], payload["s56b"][:80]
+
+
+def _fake_events() -> dict:
+    """Synthetic branch-3 numbers covering every score, label and feature set."""
+    ranking: dict = {}
+
+    def add_rank(label: str, model: str, auc: float, lift: float) -> None:
+        ranking[(label, model)] = {
+            "auc": auc,
+            "auc_lo": auc - 0.04,
+            "auc_hi": auc + 0.04,
+            "pr_auc": 0.05,
+            "lift_10pct": lift,
+            "recall_10pct": 0.2,
+        }
+
+    for label, base in (("mod_opinion", 0.640), ("violation_disclosure_t1", 0.550)):
+        for offset, model in enumerate(build_section5.EVENT_SCORES):
+            add_rank(label, model, base - 0.03 * offset, 2.18 - 0.3 * offset)
+    supervised: dict = {}
+    for feature_set in ("finance", "text", "fused"):
+        for model in ("logit", "hgb"):
+            for label in ("mod_opinion", "violation_disclosure_t1"):
+                supervised[(label, model, feature_set)] = {
+                    "auc": 0.778 if feature_set == "finance" else 0.799,
+                    "lo": 0.750,
+                    "hi": 0.830,
+                }
+    for model in ("logit", "hgb"):
+        for label in ("mod_opinion", "violation_disclosure_t1"):
+            supervised[(label, model, "delta_fused_vs_finance")] = {
+                "auc": 0.0205,
+                "lo": -0.002,
+                "hi": 0.043,
+            }
+    return {
+        "n": 8140,
+        "mod_opinion_count": 188,
+        "mod_opinion_rate": 0.0231,
+        "mod_opinion_wide_count": 327,
+        "mod_opinion_wide_rate": 0.0402,
+        "violation_any_t1_count": 1757,
+        "violation_any_t1_rate": 0.2158,
+        "violation_disclosure_t1_count": 1196,
+        "violation_disclosure_t1_rate": 0.1469,
+        "mod_by_year": {2021: 0.030, 2022: 0.023, 2023: 0.018},
+        "ranking": ranking,
+        "supervised": supervised,
+    }
+
+
+def test_table_55_shape_and_scores():
+    num = _fake_numbers_v02()
+    num["events"] = _fake_events()
+    rows = build_section5._table_55(num)
+    assert len(rows) == len(build_section5.EVENT_SCORES) + 1
+    assert all(len(row) == 5 for row in rows)
+    assert rows[0][0] == "Score"
+    assert rows[1][0] == "finance-only IF"
+    assert rows[1][1] == "0.640"
+
+
+def test_table_55_cn_shape_is_chinese():
+    num = _fake_numbers_v02()
+    num["events"] = _fake_events()
+    rows = build_section5._table_55_cn(num)
+    assert len(rows) == len(build_section5.EVENT_SCORES) + 1
+    assert all(len(row) == 5 for row in rows)
+    assert rows[0][0] == "分数"
+
+
+def test_table_56_shape_and_delta_column():
+    num = _fake_numbers_v02()
+    num["events"] = _fake_events()
+    rows = build_section5._table_56(num)
+    assert len(rows) == 7
+    assert all(len(row) == 6 for row in rows)
+    assert rows[0][0] == "Feature set"
+    fused = [row for row in rows[1:] if row[0] == "Fused"]
+    assert fused, "fused rows must exist"
+    assert all(row[3] not in ("-", "n/a") for row in fused)
+    assert all(row[3] == "-" for row in rows[1:] if row[0] != "Fused")
+    cn = build_section5._table_56_cn(num)
+    assert len(cn) == 7
+    assert all(len(row) == 6 for row in cn)
+    assert cn[0][0] == "特征集"
+
+
+def test_prose_includes_section_57():
+    num = _fake_numbers_v02()
+    num["events"] = _fake_events()
+    for builder in (build_section5.prose, build_section5.prose_cn):
+        payload = builder(num)
+        for key in (
+            "s57_heading",
+            "s57a",
+            "s57b",
+            "t55_caption",
+            "s57c",
+            "t56_caption",
+            "s57d",
+        ):
+            assert payload.get(key), key
+
+
+def test_section_57_absent_without_events():
+    num = _fake_numbers_v02()
+    payload = build_section5.prose(num)
+    assert "s57_heading" not in payload
+    assert build_section5._abstract_external(num) == ""
+    assert build_section5._abstract_external_cn(num) == ""

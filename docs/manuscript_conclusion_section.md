@@ -41,11 +41,24 @@ correlation is positive in all three years (0.103, 0.130, 0.173) while the text-
 is negative in all three - so the queue is usable as a screening signal but not as a stable risk
 label (RQ3).
 
+A fourth result emerged once the benchmark stopped being a proxy. Validated against modified
+audit opinions in CSMAR (188 firm-years, 2.31%), the finance-only ranking reaches an AUC of
+0.640 with a 2.18x enrichment in the top-10% review queue, whereas the Beneish M-Score ranks
+those same firms below chance (AUC 0.405). The proxy the first specification relied on does not
+merely add noise; it points the wrong way relative to what auditors actually concluded. Under
+firm-grouped cross-validation the text block adds a small but consistent increment to the
+financial block (+0.007 to +0.026 AUC across eight label-by-model combinations, five of them
+excluding zero), so the honest summary is a construct mismatch rather than a null result for
+text as such: MD&A tone and readability carry a little information about the disclosure process
+auditors police, and almost none about the accounting-manipulation construct that the Beneish
+benchmark measures.
+
 The main limitations are inherent to the design and are reported rather than hidden. The
-sample is confined to manufacturing and to a three-year window; the external benchmarks
-(Beneish M-Score and, where available, inquiry letters, enforcement actions, restatements,
-and modified audit opinions) are incomplete and are not treated as ground-truth labels; and
-text extraction from heterogeneous annual-report PDFs can introduce measurement error. As a
+sample is confined to manufacturing and to a three-year window; the external outcomes
+(Beneish M-Score, modified audit opinions and exchange violations) are imperfect labels -
+the audit opinion is contemporaneous with the fiscal year and both labels are produced by
+auditors and regulators whose capacity varies over time - and text extraction from
+heterogeneous annual-report PDFs can introduce measurement error. As a
 result, every company-level output is labelled a review-priority signal, not a statement of
 disclosure quality, fraud, or misconduct.
 
