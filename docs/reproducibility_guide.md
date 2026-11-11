@@ -8,7 +8,7 @@
 - Python 3.12（项目开发用 3.12.14；3.11+ 均可）
 - 依赖安装：`python -m venv .venv --system-site-packages`（或普通 venv）后
   `& ".venv\Scripts\python.exe" -m pip install -r requirements.txt`
-- 验证：`& ".venv\Scripts\python.exe" -m pytest -q` 应全部通过（当前 77 个）
+- 验证：`& ".venv\Scripts\python.exe" -m pytest -q` 应全部通过（当前 114 个）
 
 ## 1. 数据准备
 

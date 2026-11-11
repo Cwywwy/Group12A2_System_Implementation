@@ -246,6 +246,7 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | `analyze_branch_beneish_components.py` | 把 M-Score 拆成八个分量，逐分量查文本是否有信号 · branch probe per Beneish component | `outputs/branches/branch_component_correlations.csv` |
 | `build_section5.py` | 由表重写 §5 并把三张表排进 Word · rewrite §5 and typeset tables | `docs/manuscript_experiment_section.md`、Word 终稿 |
 | `build_slides.py` | 由表生成 12 页演示稿 · build the twelve-slide deck | `outputs/slides/Group12A2_Deck.pptx` / `.pdf` |
+| `run_16_verify_manuscript.py` | 用当前表重建 docx 并与交付件逐段逐表比对（交付前自检）· rebuild and diff the manuscripts | 终端报告 · terminal report |
 | `run_99_full_pipeline.py` | 一键全流程（`--stage` / `--skip-05`）· full pipeline | 全部 · all |
 | `scripts/archive/` | 历史一次性脚本（回填数字、转 docx、校验）· one-off scripts | — |
 
@@ -257,7 +258,7 @@ Organised as raw download → standardised intermediate → modelling feature ta
 ## 6. 常用命令 · Common commands
 
 ```powershell
-# 测试（当前 77 个用例）· Test suite (77 cases)
+# 测试（当前 114 个用例）· Test suite (114 cases)
 & ".venv\Scripts\python.exe" -m pytest -q
 
 # 环境与数据就绪检查 · Readiness check
@@ -289,7 +290,7 @@ Organised as raw download → standardised intermediate → modelling feature ta
    The "final" paper exists in two places: README designates the long-named root `.docx` as the paper text, while
    `outputs/manuscript/Group12A2_Final_EN.docx` is also called Final. Confirm which one is submitted before you hand in.
 
-4. **README 写的「39 个测试」已过时**，实际 77 个（以 `CHANGELOG.md` 2026-11-10 记录与 `tests/reports/` 最新报告为准）。
+4. **测试用例数会随版本增长**，当前 114 个；以 `pytest -q` 实际输出与 `CHANGELOG.md` 最新记录为准。
    README's "39 tests" is out of date: there are 77. Trust the 2026-11-10 `CHANGELOG.md` entry and the latest report
    in `tests/reports/`.
 
