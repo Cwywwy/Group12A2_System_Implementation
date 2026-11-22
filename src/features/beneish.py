@@ -43,6 +43,11 @@ def compute_beneish(df: pd.DataFrame) -> pd.DataFrame:
     out["DEPI"] = (p["depreciation"] / (p["depreciation"] + p["fixed_assets"])) / (
         out["depreciation"] / (out["depreciation"] + out["fixed_assets"])
     )
+    # The direct-method cash-flow export carries no depreciation line, so DEPI
+    # is undefined for every firm-year. Holding it at the neutral value 1.0
+    # keeps the eight-variable formula intact while contributing the constant
+    # 0.115 * 1 to the score; this limitation is stated in the report.
+    out["DEPI"] = out["DEPI"].fillna(1.0).replace([np.inf, -np.inf], 1.0)
     out["SGAI"] = (out["sga"] / out["revenue"]) / (p["sga"] / p["revenue"])
     out["LVGI"] = (out["total_liabilities"] / out["total_assets"]) / (
         p["total_liabilities"] / p["total_assets"]

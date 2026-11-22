@@ -21,6 +21,8 @@ Revision History
 2026-11-06  auto-extract CSMAR download zips when the xlsx is missing.
 2026-11-06  preflight all three inputs before reading a workbook; return exit 2 if any
             CSMAR statement remains unavailable.
+2026-11-23  keep annual 12-31 rows only and merge by symbol and fiscal year, not
+            by row position.
 """
 import argparse
 import sys
@@ -92,15 +94,18 @@ def main() -> int:
     for label, path in TABLE_FILES.items():
         indices = probe_field_columns(path)
         table = read_csmar_table(path, usecols=sorted(set(indices.values())))
-        print(f"[run_03] {label}: 解析完成，{len(table)} 行（合并口径、年份可解析）")
-        parts.append(table)
+        # CSMAR exports are quarterly: keep the 12-31 consolidated row only.
+        table = table[table["period_end"].str[5:] == "12-31"]
+        print(f"[run_03] {label}: 解析完成，{len(table)} 条年报行（合并口径、12-31）")
+        parts.append(table.set_index(["symbol", "fiscal_year"]))
 
     merged = parts[0]
     for other in parts[1:]:
         merged = merged.combine_first(other)
+    merged = merged.reset_index()
     merged = merged[OUT_COLUMNS].copy()
     merged = merged[merged["fiscal_year"].isin(SAMPLE_FISCAL_YEARS)].copy()
-    merged = merged.groupby(["symbol", "fiscal_year"], as_index=False).first()
+    merged = merged.drop_duplicates(subset=["symbol", "fiscal_year"], keep="first")
     merged = merged.dropna(subset=["symbol", "fiscal_year"]).sort_values(
         ["symbol", "fiscal_year"]
     ).reset_index(drop=True)

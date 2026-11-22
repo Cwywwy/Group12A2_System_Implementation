@@ -26,6 +26,9 @@ Revision History
             must be dropped; add CODE_ALIASES, English name aliases, Typrep
             detection and companion-name-row pairing; drop rows whose fiscal
             year fails to parse (removes name/unit rows generically).
+2026-11-23  keep annual (12-31) rows only and merge the three statements on
+            symbol and fiscal year instead of row position (fixes year-lagged
+            balance sheets and cross-firm-year feature merges).
 """
 from pathlib import Path
 
@@ -53,15 +56,19 @@ CODE_ALIASES: dict[str, list[str]] = {
     "current_liabilities": ["A002100000"],
     "long_term_debt": ["A002201000"],
     "total_liabilities": ["A002000000"],
-    # Income statement and cash flow codes are filled in once the
-    # corresponding DES files are available; name aliases below cover them.
+    # Income statement codes: the operating (not "total operating") item is
+    # the documented definition, so B001101000/B001201000 take precedence over
+    # the total-revenue/total-cost fallbacks that appear earlier in the export.
     "revenue": ["B001101000", "B001100000"],
-    "cogs": ["B001200000"],
-    "sga_sales": ["B001303000", "B001302000"],
-    "sga_admin": ["B001304000", "B001305000"],
+    "cogs": ["B001201000", "B001200000"],
+    "sga_sales": ["B001209000", "B001303000", "B001302000"],
+    "sga_admin": ["B001210000", "B001304000", "B001305000"],
     "net_income": ["B002000000"],
     "ocf": ["C001000000"],
-    "depreciation": ["C002003000"],
+    # This direct-method cash-flow export has no depreciation line (its C00
+    # codes cover operating/investing/financing cash flows only), so the field
+    # stays NaN and Beneish DEPI is held at its neutral value 1.0.
+    "depreciation": [],
 }
 
 # Column aliases -> intermediate fields. Order matters: first match wins.
@@ -87,8 +94,8 @@ FIELD_ALIASES: dict[str, list[str]] = {
 
 # English names from the modern CSMAR export (paired from the companion row).
 NAME_ALIASES_EN: dict[str, list[str]] = {
-    "revenue": ["Total Operating Revenue", "Operating Revenue"],
-    "cogs": ["Total Operating Cost", "Operating Cost", "Operating Costs"],
+    "revenue": ["Operating Revenue"],
+    "cogs": ["Operating Cost", "Operating Costs"],
     "total_assets": ["Total Assets"],
     "total_liabilities": ["Total Liabilities"],
     "current_assets": ["Total Current Assets"],
@@ -144,6 +151,22 @@ def _find_header_row(values: list[list]) -> int | None:
         if any(keyword in joined for keyword in HEADER_KEYWORDS):
             return i
     return None
+
+
+def _parse_period_end(value) -> str | None:
+    """Normalise a reported period to YYYY-MM-DD (used to keep annual rows only)."""
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return None
+    if isinstance(value, (int, np.integer)) and 19000101 <= int(value) <= 21001231:
+        text = str(int(value))
+        return f"{text[:4]}-{text[4:6]}-{text[6:8]}"
+    text = str(value).strip()
+    if len(text) >= 8 and text[:8].isdigit() and 19000101 <= int(text[:8]) <= 21001231:
+        return f"{text[:4]}-{text[4:6]}-{text[6:8]}"
+    stamp = pd.to_datetime(text, errors="coerce")
+    if pd.isna(stamp):
+        return None
+    return stamp.strftime("%Y-%m-%d")
 
 
 def _parse_period(value) -> int | None:
@@ -207,22 +230,30 @@ def probe_field_columns(path: Path, header_probe_rows: int = 3) -> dict[str, int
         else [""] * len(header_cells)
     )
 
-    def matches(field: str, header: str, name: str) -> bool:
-        if header in CODE_ALIASES.get(field, []):
-            return True
-        if header in FIELD_ALIASES[field] or name in FIELD_ALIASES[field]:
-            return True
-        return name in NAME_ALIASES_EN.get(field, [])
-
     indices: dict[str, int] = {}
     for field in list(FIELD_ALIASES) + ["report_type"]:
-        for i, (header, name) in enumerate(zip(header_cells, name_cells)):
-            if field == "report_type":
+        if field == "report_type":
+            for i, (header, name) in enumerate(zip(header_cells, name_cells)):
                 if any(k in header or k in name for k in REPORT_TYPE_KEYWORDS):
                     indices["report_type"] = i
                     break
-            elif matches(field, header, name):
-                indices[field] = i
+            continue
+        # Alias priority, not column order: the first alias that exists in the
+        # file wins, so specific items (营业成本) beat "total" items that happen
+        # to appear in an earlier column.
+        aliases = (
+            list(CODE_ALIASES.get(field, []))
+            + list(FIELD_ALIASES[field])
+            + list(NAME_ALIASES_EN.get(field, []))
+        )
+        for alias in aliases:
+            hit = None
+            for i, (header, name) in enumerate(zip(header_cells, name_cells)):
+                if header == alias or name == alias:
+                    hit = i
+                    break
+            if hit is not None:
+                indices[field] = hit
                 break
     return indices
 
@@ -279,6 +310,7 @@ def read_csmar_table(
     if mapped["fiscal_year"] is None:
         raise ValueError(f"缺少报告期列：{path}")
     out["fiscal_year"] = mapped["fiscal_year"].apply(_parse_period)
+    out["period_end"] = mapped["fiscal_year"].apply(_parse_period_end)
     out = out[out["fiscal_year"].notna()].copy()
 
     for field in FINANCE_COLS[2:]:
@@ -301,16 +333,26 @@ def build_finance_intermediate(
     cashflow_path: Path,
     fiscal_years: tuple[int, ...] = SAMPLE_FISCAL_YEARS,
 ) -> pd.DataFrame:
-    """Merge the three tables into one FINANCE_COLS table for 2020-2023."""
+    """Merge the three tables into one FINANCE_COLS table for 2020-2023.
+
+    CSMAR exports are quarterly, so each statement contains opening-balance
+    rows (YYYY-01-01) as well as interim periods. Only the annual (12-31)
+    consolidated row per firm-year may be kept, and the three statements are
+    merged on ("symbol", "fiscal_year") rather than by row position: positional
+    merges silently pair a balance sheet with another firm-year's income
+    statement whenever the tables differ in coverage.
+    """
     parts = []
     for path in (balance_path, income_path, cashflow_path):
         table = read_csmar_table(path)
+        table = table[table["period_end"].str[5:] == "12-31"]
         table = table[table["fiscal_year"].isin(fiscal_years)].copy()
         table = table.groupby(["symbol", "fiscal_year"], as_index=False).first()
-        parts.append(table)
+        parts.append(table.set_index(["symbol", "fiscal_year"]))
     merged = parts[0]
     for other in parts[1:]:
         merged = merged.combine_first(other)
+    merged = merged.reset_index()
     merged = merged[["symbol", "fiscal_year"] + list(FINANCE_COLS[2:])]
     merged = merged.dropna(subset=["symbol", "fiscal_year"]).sort_values(
         ["symbol", "fiscal_year"]

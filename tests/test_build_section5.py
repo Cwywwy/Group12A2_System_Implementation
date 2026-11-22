@@ -106,6 +106,10 @@ def test_prose_has_no_placeholders():
         num.setdefault("text_ok", 9)
         num.setdefault("text_suspicious", 1)
         num.setdefault("text_missing", 0)
+        num.setdefault("text_extracted", 10)
+        num.setdefault("text_no_pdf", 0)
+        num.setdefault("text_no_mda", 0)
+        num.setdefault("text_failed", 0)
         num.setdefault("legacy_flag", 5)
         num.setdefault("legacy_share", 0.6)
         num.setdefault("q90", 16.5)
@@ -152,6 +156,10 @@ def _fake_numbers_v02() -> dict:
             "text_ok": 9,
             "text_suspicious": 1,
             "text_missing": 0,
+            "text_extracted": 10,
+            "text_no_pdf": 0,
+            "text_no_mda": 0,
+            "text_failed": 0,
             "legacy_flag": 5,
             "legacy_share": 0.6,
             "q90": 16.5,
