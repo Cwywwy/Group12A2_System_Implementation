@@ -113,7 +113,7 @@ weaker than finance-only on every label.
 | 演示视觉规范与精确文案 · Slide spec | [slides_deck_spec.md](docs/slides_deck_spec.md) |
 | 演示大纲 · Slide outline | [slides_outline.md](docs/slides_outline.md) |
 | 演示成品 · Deck | [Group12A2_Deck.pptx](outputs/slides/Group12A2_Deck.pptx)（12 页，由 `scripts/build_slides.py` 生成） |
-| 结果汇总工作簿 · Results workbook | [Group12A2_Results_Summary.xlsx](outputs/Group12A2_Results_Summary.xlsx)（7 张表 + 6 张图，由 `scripts/build_results_excel.py` 生成） |
+| 结果汇总工作簿 · Results workbook | [Group12A2_Results_Summary.xlsx](outputs/Group12A2_Results_Summary.xlsx)（7 张表 + 6 张图，由 `scripts/build_results_excel.py` 生成）· English: [Group12A2_Results_Summary_EN.xlsx](outputs/Group12A2_Results_Summary_EN.xlsx)（`--lang en`） |
 | 小组分工与交接 · Roles and handover | [team_handoff.md](docs/team_handoff.md) |
 | 管线计划书与模块划分 · Pipeline plan | [course_paper_pipeline_plan.md](.github/plans/course_paper_pipeline_plan.md) |
 | 为什么代码这样改 · Why the code changed | [CHANGELOG.md](CHANGELOG.md) |
@@ -129,7 +129,7 @@ weaker than finance-only on every label.
 | --- | --- | --- |
 | `outputs/manuscript/` | **定稿**（中英文论文 + 系统实现报告）· final deliverables | 可以 · yes |
 | `outputs/slides/` | **演示稿**（12 页 pptx / pdf）· the twelve-slide deck | 可以 · yes |
-| `outputs/` 根 | **结果汇总工作簿**（`Group12A2_Results_Summary.xlsx`，7 表 6 图）· results summary workbook | 可以 · yes |
+| `outputs/` 根 | **结果汇总工作簿**（`Group12A2_Results_Summary.xlsx` 与 `..._EN.xlsx`，各 7 表 6 图）· results summary workbooks | 可以 · yes |
 | `outputs/tables/` `figures/` `reports/` | **第二版结果**（当前全部表、图、报告）· current results | 可以 · yes |
 | `outputs/branches/` | **各分支**调研与报告（换结果变量、Beneish 分量探针、问询函爬虫）· branch studies | 可以 · yes |
 | `outputs/archive_v0.1/` | **第一版结果**（v0.1 词典的旧表与旧图）· first-version results | 可以 · yes |

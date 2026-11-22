@@ -2,6 +2,7 @@
 
 Revision history
 2026-11-22  created: sheet names, chart counts, headline cell values.
+2026-11-22  added English-language workbook tests (--lang en).
 """
 
 import importlib.util
@@ -22,6 +23,13 @@ spec.loader.exec_module(module)
 def workbook(tmp_path_factory):
     out = tmp_path_factory.mktemp("excel") / "results.xlsx"
     module.build(out)
+    return load_workbook(out)
+
+
+@pytest.fixture(scope="module")
+def workbook_en(tmp_path_factory):
+    out = tmp_path_factory.mktemp("excel_en") / "results_en.xlsx"
+    module.build(out, lang="en")
     return load_workbook(out)
 
 
@@ -84,3 +92,52 @@ def test_lexicon_density_rows(workbook):
     assert row17 == ["正面词", 10.29, 100.15, 9.73]
     row19 = [ws.cell(row=19, column=c).value for c in range(2, 6)]
     assert row19 == ["情感词合计", 13.41, 111.3, 8.3]
+
+
+# ---- English workbook ------------------------------------------------------
+def test_en_sheet_names(workbook_en):
+    assert workbook_en.sheetnames == [
+        "Overview", "RQ1 Main results", "RQ2 Explainability", "RQ3 Robustness",
+        "5.7 External validation", "5.6 Two specifications", "Notes",
+    ]
+
+
+def test_en_chart_counts(workbook_en):
+    counts = {ws.title: len(ws._charts) for ws in workbook_en.worksheets}
+    assert counts == {
+        "Overview": 0, "RQ1 Main results": 1, "RQ2 Explainability": 2, "RQ3 Robustness": 0,
+        "5.7 External validation": 2, "5.6 Two specifications": 1, "Notes": 0,
+    }
+
+
+def test_en_overview_key_cells(workbook_en):
+    ws = workbook_en["Overview"]
+    assert "Results at a Glance" in ws["B2"].value
+    assert ws["B14"].value == "Top case under review (fused score)"
+    assert "000820" in ws["C14"].value
+    assert ws["B16"].value == "One-line conclusion (honest phrasing)"
+
+
+def test_en_rq1_headers_and_values(workbook_en):
+    ws = workbook_en["RQ1 Main results"]
+    rho = {ws[f"B{r}"].value: ws[f"C{r}"].value for r in range(6, 10)}
+    assert rho["Finance-only IF"] == 0.136
+    assert rho["Text-only IF"] == -0.029
+    assert rho["Fused IF"] == 0.103
+    assert ws["C12"].value == "Enrichment · legacy (M>−1.78) top-10%"
+    assert ws["D12"].value == "Enrichment · calibrated top-10%"
+    assert ws["C13"].value == 1.217
+    assert ws["D13"].value == 1.867
+
+
+def test_en_external_rows(workbook_en):
+    ws = workbook_en["5.7 External validation"]
+    assert [ws.cell(row=20, column=c).value for c in range(2, 11)] == [
+        "Finance", 0.778, "—", 0.746, "—", 0.606, "—", 0.642, "—",
+    ]
+    labels = [ws[f"B{r}"].value for r in range(26, 34)]
+    assert labels[:4] == [
+        "Opinion (narrow) · Logit", "Opinion (narrow) · HGB",
+        "Opinion (wide) · Logit", "Opinion (wide) · HGB",
+    ]
+
