@@ -2,6 +2,10 @@
 
 按日期分组，从新到旧。
 
+## 2026-11-22
+
+- 新增 `scripts/build_results_excel.py`：按当前定稿成果生成结果汇总工作簿 `outputs/Group12A2_Results_Summary.xlsx`（7 张表：总览 / RQ1 主结果 / RQ2 可解释 / RQ3 稳健性 / §5.7 外部检验 / §5.6 两版对比 / 说明，含 6 张原生 Excel 图表）。数字全部在运行时从 `outputs/tables/` 现算，与论文 §5 同源；`tests/test_build_results_excel.py` 7 个测试，全套 **121/121 通过**。
+
 ## 2026-11-12
 
 - 新增 `scripts/run_16_verify_manuscript.py`：用当前 `outputs/tables/` 与 `outputs/manuscript/source/` 母版重建中英 docx，与交付件逐段落、逐表格比对，并抽查头条数字（事件 AUC 0.640 / Beneish 0.405、校准富集 1.867）与章节标记（§5.6、§5.7、Table 5.5/5.6），最后打印交付件页数与时间。交付前跑一次即可确认「定稿 = 当前管线输出」。
