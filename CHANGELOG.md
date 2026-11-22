@@ -1,5 +1,21 @@
 # 变更日志
 
+## 2026-11-23
+
+- 第二轮数据修复（列取错）：`src/data_ingestion/csmar_parser.py` 的 `CODE_ALIASES` 把 `revenue` 从“营业总收入”（B001100000）改为“营业收入”（B001101000），`cogs` 从“营业总成本”改为“营业成本”（B001201000）；`probe_field_columns()` 改为按别名优先级查找；`depreciation` 别名置空（直接法现金流量表无折旧行），`src/features/beneish.py` 将 DEPI 中性化为 1.0。
+- 重跑 `run_03 → 06 → 03b → 07 → 07b → 11 → 12`：样本 8,000 增至 **9,239 firm-years / 3,488 firms**（90.8%）；事件表此前停在 8,000 行，一并重跑；Beneish 命中率 35.2% 改为 18.2%，Spearman finance/text/fused/AE 为 −0.021/−0.026/−0.018/−0.007，非标意见 AUC 0.812 改为 0.802，Beneish 0.328 改为 0.242（方向相反）。
+- `scripts/build_section5.py` 再次改写：新增 `_corr_clause()` 与 `_mscore_components()`，§5.7 补上 Beneish 方向为负的分解（非标组 TATA −0.105、SGI 0.885，系数奖励正应计与增长），表 5.4 末行与表 5.6 表述收紧为“8 个组合全为正但无区间排除 0”。
+- 重新生成 `docs/manuscript_experiment_section.md`、中文版、`outputs/manuscript/Group12A2_Final_EN.docx`、两张结果工作簿与六张图，并刷新 `11.23base/Group12A2_Final_EN_corrected.docx`（131 段 / 6 表 / 6 图）。
+- 新增 `scripts/run_02b_audit_data.py`：季报/年报期间核查、中间表逐值比对、开盘余额污染与滞后回归、特征格式范围、PDF 年份对齐、事件标签、输出表 NaN/inf；报告写 `outputs/reports/data_audit_2026-11-23.md`。
+- 更新 `tests/test_build_results_excel.py` 与 `tests/test_build_section5.py` 期望值，全套 **126/126 通过**。
+
+- 修复财务中间表合并缺陷：`src/data_ingestion/csmar_parser.py` 新增 `_parse_period_end()` 与 `period_end` 列，`build_finance_intermediate()` 与 `scripts/run_03_build_finance_intermediate.py` 只取 12-31 年报行、按 `symbol + fiscal_year` 键对齐合并三张报表（原先按位置 `combine_first`，导致 73.4% 的年份资产负债表滞后一年）。
+- 全流程重跑（`run_03 → 06 → 07 → 07b → 11 → 12`）：完整样本 8,140 → 8,000 firm-years / 3,186 家；M > −1.78 命中率 62.8% → 35.2%；Spearman finance/fused 由 +0.136/+0.103 变为 −0.048/−0.046；非标意见 AUC 0.640 → 0.812，Beneish 仅 0.328；披露类违规 AUC 0.549 → 0.595。
+- `scripts/build_section5.py` §5 叙述全部重写（负相关、35.2%、平铺 SHAP、v0.1 数据口径说明、披露类违规口径），中英文 markdown 与 `outputs/manuscript/Group12A2_Final_CN.docx` 同步重生成。
+- 新增 `scripts/build_report_figures.py`：重画六张英文图并替换进 `11.23base/Group12A2_Final_EN_corrected.docx`（段落 + 表格 + 图全部更新，保留组员图例结构）。
+- `scripts/build_results_excel.py` 重生成中英结果工作簿；更新 `tests/test_build_results_excel.py` 与 `tests/test_build_section5.py` 期望值，全套 **126/126 通过**。
+- `11.23base/核对报告-2026-11-23.md` 更新为终版数字与已完成清单。
+
 按日期分组，从新到旧。
 
 ## 2026-11-22

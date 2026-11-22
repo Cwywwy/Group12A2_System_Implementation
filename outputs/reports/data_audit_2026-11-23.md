@@ -1,0 +1,58 @@
+# 数据审计：季报/年报错漏与格式合规
+
+- 审计时间：2026-11-23 03:03
+- 通过 49 / 49
+- 失败：无
+- 待人工确认：无
+
+| 检查项 | 结果 | 细节 |
+| --- | --- | --- |
+| raw/FS_Combas.xlsx 期间分布 | PASS | {'行数': 259508, 'Anal': 150644, '年度(12-31)行': 30861, '非12-31月份': {'01-01': 61279, '03-31': 40364, '06-30': 59317, '09-30': 37269}, '年度行重复键': 0, '年份范围': [2020, 2025]} |
+| raw/FS_Comins.xlsx 期间分布 | PASS | {'行数': 685982, 'Anal': 381855, '年度(12-31)行': 78583, '非12-31月份': {'01-01': 144239, '03-31': 120224, '06-30': 152210, '09-30': 120928}, '年度行重复键': 0, '年份范围': [1990, 2025]} |
+| raw/FS_Comscfd.xlsx 期间分布 | PASS | {'行数': 259499, 'Anal': 150641, '年度(12-31)行': 30860, '非12-31月份': {'01-01': 61278, '03-31': 40360, '06-30': 59315, '09-30': 37268}, '年度行重复键': 0, '年份范围': [2020, 2025]} |
+| intermediate/仅含样本年度 2020–2023 | PASS | {2020.0: 4496, 2021.0: 4922, 2022.0: 5193, 2023.0: 5355} |
+| intermediate/无重复公司-年度 | PASS | {'行数': 19966, '重复': 0} |
+| intermediate/total_assets 与原始年报一致 | PASS | {'比对行': 19966, '不一致': 0} |
+| intermediate/total_liabilities 与原始年报一致 | PASS | {'比对行': 19966, '不一致': 0} |
+| intermediate/revenue 与原始年报一致 | PASS | {'比对行': 19571, '不一致': 0} |
+| intermediate/cogs 与原始年报一致 | PASS | {'比对行': 19563, '不一致': 0} |
+| intermediate/net_income 与原始年报一致 | PASS | {'比对行': 19966, '不一致': 0} |
+| intermediate/ocf 与原始年报一致 | PASS | {'比对行': 19965, '不一致': 0} |
+| intermediate/无季报期初数混入（01-01 行回归测试） | PASS | {'可比行': 39610, '等于期初数且不等于期末数': 0, '两者皆不等（可能为追溯调整）': 0} |
+| intermediate/无一年滞后特征（旧缺陷回归测试） | PASS | {'可比行': 14493, '总资产等于上年值': 0} |
+| feature_table/roa 可由中间表重算 | PASS | {'可比': 10172, '不一致': 0} |
+| feature_table/leverage 可由中间表重算 | PASS | {'可比': 10172, '不一致': 0} |
+| feature_table/ocf_to_assets 可由中间表重算 | PASS | {'可比': 10172, '不一致': 0} |
+| feature_table/accruals_to_assets 可由中间表重算 | PASS | {'可比': 10172, '不一致': 0} |
+| feature_table/m_score 可由中间表重算 | PASS | {'可比': 9414, '不一致': 0} |
+| feature_table/行数=10,172 | PASS | None |
+| feature_table/公司-年度无重复 | PASS | None |
+| feature_table/年份⊂{2021,2022,2023} | PASS | None |
+| feature_table/end_date 全为 YYYY-12-31 | PASS | None |
+| feature_table/行业代码全以 C 开头 | PASS | None |
+| feature_table/symbol 6 位（读入后） | PASS | None |
+| feature_table/readability ∈ (0,1] | PASS | None |
+| feature_table/sentiment_balance ∈ [-1,1] | PASS | None |
+| feature_table/uncertainty_ratio ∈ [0,1] | PASS | None |
+| feature_table/n_tokens 非负 | PASS | None |
+| feature_table/text_status 取值合法 | PASS | None |
+| feature_table/text_quality 取值合法 | PASS | None |
+| feature_table/金融特征无 inf | PASS | None |
+| feature_table/文本特征与 status 对齐 | PASS | None |
+| feature_table/文本缺失计数 | PASS | {'ok': 9991, 'missing': 174, 'suspicious': 7} |
+| event_table/覆盖完整样本（行数与 6 位代码） | PASS | {'行数': 9239, '公司': 3488} |
+| event_table/键集与建模样本一致 | PASS | {'scores': 9239, 'events': 9239, '仅事件有': 0, '仅模型有': 0} |
+| event_table/审计意见覆盖 | PASS | {2021: 1.0, 2022: 1.0, 2023: 1.0} |
+| event_table/t+1 违规按年分布 | PASS | {'violation_any_t1': {2021: 622, 2022: 634, 2023: 709}, 'violation_disclosure_t1': {2021: 417, 2022: 438, 2023: 482}} |
+| raw/违规公告年份覆盖（t+1 是否可观测） | PASS | {'最小': 2000, '最大': 2026, '各年': {2000: 14, 2001: 79, 2002: 214, 2003: 120, 2004: 101, 2005: 87, 2006: 78, 2007: 85, 2008: 90, 2009: 147, 2010: 122, 2011: 208, 2012: 385, 2013: 477, 2014: 581, 2015: 870, 2016: 1053, 2017: 1211, 2018: 1511, 2019: 1913, 2020: 1973, 2021: 2106, 2022: 2343, 2023: 2194, 2024: 2491, 2025: 1350, 2026: 53}} |
+| outputs/anomaly_scores.csv 数值完整 | PASS | {'行': 9239, '列': ['symbol', 'fiscal_year', 'industry_code_d', 'if_finance', 'if_text', 'if_fused'], 'NaN': 0, 'inf': 0} |
+| outputs/event_ranking_metrics.csv 数值完整 | PASS | {'行': 20, '列': ['label', 'model', 'n', 'n_events', 'base_rate', 'auc'], 'NaN': 0, 'inf': 0} |
+| outputs/event_supervised_metrics.csv 数值完整 | PASS | {'行': 40, '列': ['label', 'model', 'feature_set', 'n_features', 'n', 'n_events'], 'NaN': 0, 'inf': 0} |
+| outputs/lexicon_density.csv 数值完整 | PASS | {'行': 4, '列': ['metric', 'v01_per_1000', 'v02_per_1000', 'ratio'], 'NaN': 0, 'inf': 0} |
+| outputs/model_metrics.csv 数值完整 | PASS | {'行': 4, '列': ['model', 'spearman_rho', 'spearman_p'], 'NaN': 0, 'inf': 0} |
+| outputs/ranking_overlap.csv 数值完整 | PASS | {'行': 16, '列': ['model_a', 'model_b', 'top10_overlap'], 'NaN': 0, 'inf': 0} |
+| outputs/shap_global.csv 数值完整 | PASS | {'行': 9, '列': ['feature', 'mean_abs_shap'], 'NaN': 0, 'inf': 0} |
+| outputs/shap_group_contributions.csv 数值完整 | PASS | {'行': 2, '列': ['group', 'abs_shap_share', 'n_features'], 'NaN': 0, 'inf': 0} |
+| outputs/shap_local_top1.csv 数值完整 | PASS | {'行': 9, '列': ['feature', 'shap_value'], 'NaN': 0, 'inf': 0} |
+| outputs/topk_metrics.csv 数值完整 | PASS | {'行': 24, '列': ['benchmark', 'model', 'k', 'event_rate', 'enrichment'], 'NaN': 0, 'inf': 0} |
+| PDF/文件年份与报告期一致（抽样） | PASS | {'抽样': 120, '缺失文件': 0, '不一致': [], '不一致数': 0} |

@@ -108,8 +108,97 @@ def _p_inline(p_value: float) -> str:
     return "p < 0.001" if p_value < 0.001 else f"p = {p_value:.3f}"
 
 
+def _mscore_components(scores: pd.DataFrame) -> dict:
+    """Median Beneish indices for modified-opinion versus other firm-years.
+
+    Used in §5.7 to explain why the M-Score ranks modified-opinion firms below
+    the rest of the sample: the two indices that move the score most in this
+    sample are total accruals (TATA) and sales growth (SGI), and both have the
+    opposite sign in the modified-opinion group to the direction Beneish's
+    coefficients reward.
+    """
+    empty = {"mod": {}, "clean": {}}
+    try:
+        import sys
+
+        if str(ROOT) not in sys.path:
+            # Keep the import working when the script is executed from another
+            # directory (for example the docx patch helper in outputs/.tmp).
+            sys.path.insert(0, str(ROOT))
+
+        from src.features.beneish import compute_beneish
+        from src.features.financial import compute_finance_features
+
+        interim = pd.read_csv(
+            ROOT / "data" / "interim" / "finance_intermediate.csv",
+            dtype={"symbol": str},
+        )
+        events = pd.read_csv(
+            PROCESSED / "event_table.csv", dtype={"symbol": str}
+        )[["symbol", "fiscal_year", "mod_opinion"]]
+        frame = compute_beneish(compute_finance_features(interim))
+        frame["symbol"] = frame["symbol"].astype(str).str.zfill(6)
+        events["symbol"] = events["symbol"].astype(str).str.zfill(6)
+        merged = frame.merge(events, on=["symbol", "fiscal_year"], how="inner")
+        merged = merged.dropna(subset=["m_score"])
+        out: dict = {}
+        for key, value in (("mod", 1), ("clean", 0)):
+            sub = merged[merged["mod_opinion"] == value]
+            out[key] = {
+                "DSRI": float(sub["DSRI"].median()),
+                "GMI": float(sub["GMI"].median()),
+                "AQI": float(sub["AQI"].median()),
+                "SGI": float(sub["SGI"].median()),
+                "LVGI": float(sub["LVGI"].median()),
+                "SGAI": float(sub["SGAI"].median()),
+                "TATA": float(sub["TATA"].median()),
+                "m_score": float(sub["m_score"].median()),
+                "roa": float(sub["roa"].median()),
+                "leverage": float(sub["leverage"].median()),
+                "n": int(len(sub)),
+            }
+        return out
+    except Exception:  # pragma: no cover - the paragraph degrades gracefully
+        return empty
+
+
 def _p_text(p_value: float) -> str:
     return "< 0.001" if p_value < 0.001 else f"{p_value:.3f}"
+
+
+def _corr_clause(rho: float, p_value: float) -> str:
+    """Describe a rank correlation without overstating or understating it."""
+    if p_value < 0.05:
+        return (
+            f"weakly negative and marginally significant (rho = {rho:.3f}, "
+            f"{_p_inline(p_value)})"
+        )
+    return f"indistinguishable from zero (rho = {rho:.3f}, {_p_inline(p_value)})"
+
+
+_FEATURE_WORDS = {
+    "roa": "profitability",
+    "leverage": "leverage",
+    "revenue_growth": "revenue growth",
+    "ocf_to_assets": "operating cash flow",
+    "receivables_turnover": "receivables turnover",
+    "accruals_to_assets": "accruals",
+    "readability": "readability",
+    "sentiment_balance": "sentiment balance",
+    "uncertainty_ratio": "uncertainty language",
+}
+
+
+def _drivers_profile(names: list[str]) -> str:
+    """Turn the top local SHAP drivers into a readable profile phrase."""
+    words = [_FEATURE_WORDS.get(name, name.replace("_", " ")) for name in names]
+    if len(words) == 1:
+        joined = words[0]
+    elif len(words) == 2:
+        joined = f"{words[0]} and {words[1]}"
+    else:
+        joined = ", ".join(words[:-1]) + f" and {words[-1]}"
+    return f"an unusual {joined} profile"
 
 
 def _load_v01_metrics() -> dict:
@@ -220,7 +309,11 @@ def collect_numbers() -> dict:
     num["share"] = num["n"] / num["frame_years"]
 
     status = features["text_status"].fillna("missing").value_counts()
-    num["text_ok"] = int(status.get("ok", 0))
+    num["text_extracted"] = int(status.get("ok", 0))
+    num["text_no_pdf"] = int(status.get("missing", 0))
+    num["text_no_mda"] = int(status.get("no_mda", 0))
+    num["text_failed"] = int(status.get("pdf_error", 0))
+    num["text_ok"] = int(features["text_quality"].eq("ok").sum())
     num["text_suspicious"] = int(features["text_quality"].eq("suspicious").sum())
     num["text_missing"] = int(features["text_quality"].eq("missing").sum())
     num["year_share_text"] = {
@@ -232,6 +325,7 @@ def collect_numbers() -> dict:
     num["legacy_share"] = float(scores["benchmark_flag"].mean())
     num["q90"] = float(scores["m_score"].quantile(0.90))
     num["cal_flag"] = int(scores["benchmark_flag_calibrated"].sum())
+    num["mscore_components"] = _mscore_components(scores)
 
     for model in MODEL_LABELS:
         num[f"rho_{model}"] = float(metrics.loc[model, "spearman_rho"])
@@ -422,8 +516,8 @@ def _table_54(num: dict) -> list[list[str]]:
         ],
         [
             "Beneish benchmark",
-            "Literal M > -1.78 only (flags 62.8% of the sample)",
-            "Literal M > -1.78 and sample top decile (M > 16.52, 10%)",
+            "Literal M > -1.78 only",
+            f"Literal M > -1.78 and sample top decile (M > {num['q90']:.2f}, 10%)",
         ],
         [
             "Text-only / fused rank correlation",
@@ -442,8 +536,9 @@ def _table_54(num: dict) -> list[list[str]]:
         ],
         [
             "Answer to RQ1",
-            "Text adds no value",
-            "Unchanged: text adds no value",
+            "No incremental value for the Beneish screen",
+            "Unchanged for the Beneish screen; small positive but statistically "
+            "indistinguishable increments in supervised models (Table 5.6)",
         ],
     ]
     return rows
@@ -463,9 +558,9 @@ def _table_55(num: dict) -> list[list[str]]:
         [
             "Score",
             "AUC: opinion",
-            "AUC: violation t+1",
+            "AUC: disclosure violation t+1",
             "Lift: opinion",
-            "Lift: violation",
+            "Lift: disclosure violation",
         ]
     ]
     for model in EVENT_SCORES:
@@ -499,7 +594,7 @@ def _table_56(num: dict) -> list[list[str]]:
             "Model",
             "AUC: opinion",
             "\u0394AUC vs finance",
-            "AUC: violation t+1",
+            "AUC: disclosure violation t+1",
             "\u0394AUC vs finance",
         ]
     ]
@@ -533,22 +628,21 @@ def _table_56(num: dict) -> list[list[str]]:
 
 
 def _abstract_external(num: dict) -> str:
-    """One-sentence abstract addendum about the external-outcome validation."""
+    """Abstract addendum: forward-looking outcomes and the supervised increments."""
     events = num.get("events") or {}
     ranking = events.get("ranking") or {}
     supervised = events.get("supervised") or {}
-    opinion = ranking.get(("mod_opinion", "finance-only IF")) or {}
-    proxy = ranking.get(("mod_opinion", "Beneish M-Score")) or {}
+    forward = ranking.get(("violation_disclosure_t1", "finance-only IF")) or {}
     gain = supervised.get(("mod_opinion", "logit", "delta_fused_vs_finance")) or {}
-    if not (opinion and proxy and gain):
+    if not (forward and gain):
         return ""
     return (
-        " Validated against real regulatory outcomes, the finance-only ranking reaches an "
-        f"AUC of {opinion['auc']:.3f} for modified audit opinions with a "
-        f"{opinion['lift_10pct']:.2f}x enrichment in the top-10% review queue, whereas the "
-        f"Beneish proxy ranks those firms below chance (AUC {proxy['auc']:.3f}); adding the "
-        "text block raises the grouped cross-validation AUC by "
-        f"{gain['auc']:+.3f} [{gain['lo']:+.3f}, {gain['hi']:+.3f}]."
+        f" Forward-looking discrimination is weak: the best t+1 disclosure-violation AUC is "
+        f"{forward['auc']:.3f}. In firm-grouped supervised cross-validation, adding the text "
+        "block changes the AUC by "
+        f"{gain['auc']:+.3f} [{gain['lo']:+.3f}, {gain['hi']:+.3f}], an increment that is "
+        "small and not statistically distinguishable from zero in any of the eight reported "
+        "label-by-algorithm combinations."
     )
 
 
@@ -557,17 +651,15 @@ def _abstract_external_cn(num: dict) -> str:
     events = num.get("events") or {}
     ranking = events.get("ranking") or {}
     supervised = events.get("supervised") or {}
-    opinion = ranking.get(("mod_opinion", "finance-only IF")) or {}
-    proxy = ranking.get(("mod_opinion", "Beneish M-Score")) or {}
+    forward = ranking.get(("violation_disclosure_t1", "finance-only IF")) or {}
     gain = supervised.get(("mod_opinion", "logit", "delta_fused_vs_finance")) or {}
-    if not (opinion and proxy and gain):
+    if not (forward and gain):
         return ""
     return (
-        f"以真实监管结果做外部检验时，财务单独排序对非标审计意见的 AUC 为 "
-        f"{opinion['auc']:.3f}，前 10% 审查队列富集 "
-        f"{opinion['lift_10pct']:.2f} 倍，而 Beneish 代理对同一结果的 AUC 仅 "
-        f"{proxy['auc']:.3f}（低于随机）；按公司分组的交叉验证中，文本块带来 "
-        f"{gain['auc']:+.3f}（区间 [{gain['lo']:+.3f}, {gain['hi']:+.3f}]）的 AUC 增量。"
+        f"前瞻性识别很弱：t+1 披露违规的最高 AUC 仅 {forward['auc']:.3f}。按公司分组的"
+        f"监督交叉验证中，加入文本块使 AUC 变化 {gain['auc']:+.3f}"
+        f"（区间 [{gain['lo']:+.3f}, {gain['hi']:+.3f}]），八种标签与算法的组合中没有一个"
+        f"能把这微小增量与零区分开。"
     )
 
 
@@ -638,10 +730,11 @@ def _section57_en(num: dict) -> dict:
         "(FIN_Audit) and exchange violation announcements (STK_Violation_Main). The narrow "
         "opinion label equals one for any opinion other than unqualified; the wide label also "
         "counts unqualified opinions with an explanatory paragraph. The violation label "
-        "equals one when an announcement falls in t+1, either any violation or the "
-        "disclosure-related subset (delayed disclosure, misstatement, material omission, "
-        "fictitious profit or assets), which keeps that test forward-looking and extends the "
-        "window to 2025."
+        "equals one when an announcement falls in t+1. Sample counts are reported for both "
+        "all violations and the disclosure-related subset, whereas the ranking tests in "
+        "Table 5.5 use the narrower subset (delayed disclosure, misstatement, material "
+        "omission, fictitious profit or assets), which keeps that test forward-looking and "
+        "extends the window to 2025."
     )
     text["s57b"] = (
         f"Both outcomes cover all {n:,} firm-years, so this is an external validation rather "
@@ -658,17 +751,38 @@ def _section57_en(num: dict) -> dict:
         "violation = disclosure-related announcement in t+1, lift = top-10% queue event rate "
         "over the base rate."
     )
+    comp = num.get("mscore_components") or {}
+    if comp.get("mod") and comp.get("clean"):
+        mod_c, clean_c = comp["mod"], comp["clean"]
+        mscore_gap = (
+            "The reason is visible in the indices the score weights most. Relative to other "
+            f"firm-years, modified-opinion firms have a median total-accruals ratio (TATA) of "
+            f"{mod_c['TATA']:.2f} against {clean_c['TATA']:.2f}, a sales growth index (SGI) of "
+            f"{mod_c['SGI']:.2f} against {clean_c['SGI']:.2f}, a leverage index (LVGI) of "
+            f"{mod_c['LVGI']:.2f} against {clean_c['LVGI']:.2f}, a median return on assets of "
+            f"{mod_c['roa'] * 100:.1f}% against {clean_c['roa'] * 100:.1f}%, and median "
+            f"leverage of {mod_c['leverage'] * 100:.1f}% against "
+            f"{clean_c['leverage'] * 100:.1f}%. Beneish's coefficients reward positive accruals "
+            "(+4.679) and sales growth (+0.892) and penalise leverage increases (-0.327), so "
+            "contracting, loss-making and highly leveraged firms - precisely the population "
+            "that receives modified opinions here - are pushed down the risk ranking. The score "
+            "is calibrated to detect income-inflating manipulation, not financial distress, and "
+            "the two constructs diverge sharply in this sample."
+        )
+    else:  # pragma: no cover - only when the intermediate is unavailable
+        mscore_gap = ""
     text["s57c"] = (
         f"Table 5.5 reports ranking quality. The finance-only Isolation Forest transfers to "
         f"the real outcome: AUC {auc(fin)} for a modified opinion, with the top-10% queue at "
         f"{fin.get('lift_10pct', float('nan')):.2f} times the base rate and covering "
         f"{fin.get('recall_10pct', float('nan')) * 100:.1f}% of modified opinions. Text alone "
-        f"is close to chance ({auc(txt)}), the fused score sits between ({auc(fused)}), and "
-        f"the autoencoder falls below chance ({auc(ae)}). Most striking is the benchmark: the "
-        f"Beneish M-Score orders modified-opinion firms below the rest of the sample "
-        f"({auc(proxy)}), so the proxy behind RQ1 points the wrong way relative to what "
-        f"auditors did. For forward violations every score is weaker (best {auc(fin_v)}), as "
-        "expected when the outcome mixes disclosure quality with regulator attention."
+        f"is close to chance ({auc(txt)}), the fused score sits between the two "
+        f"({auc(fused)}), and the autoencoder is weaker still ({auc(ae)}). Most striking is "
+        f"the benchmark: the Beneish M-Score orders modified-opinion firms below the rest of "
+        f"the sample ({auc(proxy)}), so the proxy behind RQ1 points the wrong way relative "
+        f"to what auditors did. {mscore_gap} For forward violations every score is weaker "
+        f"(best {auc(fin_v)}), as expected when the outcome mixes disclosure quality with "
+        "regulator attention."
     )
     text["t56_caption"] = (
         "Table 5.6. Out-of-fold AUC under firm-grouped five-fold cross-validation, with the "
@@ -687,8 +801,12 @@ def _section57_en(num: dict) -> dict:
         f"{dtext(gain('violation_disclosure_t1', 'logit'))} and "
         f"{dtext(gain('violation_disclosure_t1', 'hgb'))}. Across the {len(gains)} "
         f"label-by-model combinations the increment is positive in {positive} and its "
-        f"interval excludes zero in {significant} - small but consistent, and opposite to "
-        "the Beneish comparison in §5.2."
+        f"interval excludes zero in {significant} - "
+        + (
+            "small and never statistically distinguishable from zero."
+            if significant == 0
+            else "small and only sometimes detectable."
+        )
     )
     text["s57e"] = (
         "Two caveats keep this from being a clean positive headline. First, the audit "
@@ -700,10 +818,75 @@ def _section57_en(num: dict) -> dict:
         "construct mismatch: MD&A tone and readability say something about the disclosure "
         "process auditors police, but little about the accounting-manipulation construct the "
         "Beneish benchmark measures. RQ1's negative answer therefore stands for the Beneish "
-        "target, while against real audit outcomes the text block carries a small but "
-        "detectable increment - the more defensible claim."
+        "target, while against real audit outcomes the fused block adds at most a small "
+        "increment that is not statistically distinguishable from zero - consistent with, "
+        "but not evidence of, complementarity."
     )
     return text
+
+
+def _benchmark_finding(num: dict) -> str:
+    """Lead sentence of the abstract and conclusion: the benchmark fails, and why.
+
+    Track A of the revision treats the external validation as the headline result
+    rather than as a caveat on a null RQ1: against real audit outcomes the Beneish
+    score ranks modified-opinion firms *below* the rest of the sample, and the
+    component medians show that this follows from what the score rewards.
+    """
+    events = num.get("events") or {}
+    ranking = events.get("ranking") or {}
+    opinion = ranking.get(("mod_opinion", "finance-only IF")) or {}
+    proxy = ranking.get(("mod_opinion", "Beneish M-Score")) or {}
+    if not (opinion and proxy):
+        return ""
+    comp = num.get("mscore_components") or {}
+    mechanism = ""
+    if comp.get("mod") and comp.get("clean"):
+        m, c = comp["mod"], comp["clean"]
+        mechanism = (
+            f" The gap is a construct mismatch rather than a calibration artefact: "
+            f"modified-opinion firms report contracting sales (median SGI {m['SGI']:.2f} "
+            f"against {c['SGI']:.2f}), negative accruals (TATA {m['TATA']:.2f} against "
+            f"{c['TATA']:.2f}) and higher leverage ({m['leverage'] * 100:.0f}% against "
+            f"{c['leverage'] * 100:.0f}%), while the score rewards positive accruals "
+            f"(+4.679) and sales growth (+0.892); it detects income-inflating "
+            f"manipulation, not the financial distress that drives modified opinions here."
+        )
+    return (
+        f"The study's most robust result concerns the benchmark rather than the text. "
+        f"Across {num['n']:,} firm-years from {num['n_firms']:,} firms, the finance-only "
+        f"Isolation Forest ranks firm-years with contemporaneous modified audit opinions "
+        f"well (AUC {opinion['auc']:.3f}), whereas the Beneish M-Score ranks those same "
+        f"firms below chance (AUC {proxy['auc']:.3f}).{mechanism}"
+    )
+
+
+def _benchmark_finding_cn(num: dict) -> str:
+    """Chinese counterpart of :func:`_benchmark_finding`."""
+    events = num.get("events") or {}
+    ranking = events.get("ranking") or {}
+    opinion = ranking.get(("mod_opinion", "finance-only IF")) or {}
+    proxy = ranking.get(("mod_opinion", "Beneish M-Score")) or {}
+    if not (opinion and proxy):
+        return ""
+    comp = num.get("mscore_components") or {}
+    mechanism = ""
+    if comp.get("mod") and comp.get("clean"):
+        m, c = comp["mod"], comp["clean"]
+        mechanism = (
+            f"差距来自构念错配而非阈值标定：非标意见组的营业收入指数（SGI）中位数为 "
+            f"{m['SGI']:.2f}（其他样本 {c['SGI']:.2f}），总应计比率（TATA）为 "
+            f"{m['TATA']:.2f}（其他 {c['TATA']:.2f}），杠杆率为 "
+            f"{m['leverage'] * 100:.0f}%（其他 {c['leverage'] * 100:.0f}%）；而该评分奖励正应计"
+            f"（+4.679）与销售增长（+0.892），它识别的是虚增利润型的盈余操纵，而非驱动非标意见的"
+            f"财务困境。"
+        )
+    return (
+        f"本文最稳健的结论来自基准本身而非文本：在 {num['n']:,} 个公司—年度观测"
+        f"（{num['n_firms']:,} 家公司）上，仅用财务特征的 Isolation Forest 对同期非标审计意见的"
+        f"排序 AUC 为 {opinion['auc']:.3f}，而 Beneish M-Score 对同一结果的 AUC 仅 "
+        f"{proxy['auc']:.3f}（低于随机）。{mechanism}"
+    )
 
 
 def prose(num: dict) -> dict:
@@ -726,12 +909,14 @@ def prose(num: dict) -> dict:
     text: dict = {}
 
     text["abstract_updates"] = (
-        f"On the final sample of {num['n']:,} firm-years, the fused ranking correlates "
-        f"weakly but significantly with the Beneish M-Score (Spearman rho {rho_fused:.3f}, "
-        f"{_p_inline(num['p_if_fused'])}); the finance-only ranking correlates more strongly "
-        f"({rho_fin:.3f}), and adding the three MD&A textual features does not improve the "
-        f"ranking, while the top-10% review list enriches Beneish flags by a factor of "
-        f"{num['en_calibrated_if_fused_10']:.2f} under the recalibrated benchmark "
+        _benchmark_finding(num)
+        + f" Measured against that benchmark, the three MD&A features add no incremental "
+        f"value: the fused ranking is weakly and inversely correlated with the M-Score "
+        f"(Spearman rho {rho_fused:.3f}, {_p_inline(num['p_if_fused'])}), the finance-only "
+        f"ranking behaves the same way ({rho_fin:.3f}) and the text-only ranking is "
+        f"{_corr_clause(rho_text, num['p_if_text'])}. Under the recalibrated top-decile "
+        f"benchmark the fused top-10% review list contains "
+        f"{num['en_calibrated_if_fused_10']:.2f} times the base flag rate "
         f"({num['en_legacy_if_fused_10']:.2f} under the literal -1.78 cut-off)."
         + _abstract_external(num)
     )
@@ -756,24 +941,26 @@ def prose(num: dict) -> dict:
         f"financial features, the three textual features and the Beneish M-Score, "
         f"{num['n']:,} firm-years ({num['share'] * 100:.1f}%) across {num['n_firms']:,} "
         f"firms have complete data and enter the main analysis ({year_used}). MD&A text "
-        f"availability is high: {num['text_ok']:,} rows are of good quality, "
-        f"{num['text_suspicious']} are flagged as suspicious (scanned reports or fewer "
-        f"than 300 tokens) and {num['text_missing']:,} have no usable text; the yearly "
-        f"usable shares are {year_share}. The download audit verified 10,051 PDFs correct "
+        f"was extracted for {num['text_extracted']:,} firm-years: {num['text_ok']:,} pass "
+        f"the quality screen and {num['text_suspicious']} fall below 300 tokens but are "
+        f"retained and flagged, while {num['text_missing']:,} have no usable text; the "
+        f"yearly extraction shares are {year_share}. All seven flagged rows remain in the "
+        f"complete-case sample. The download audit verified 10,051 PDFs correct "
         f"out of 10,172 (98.8%); the 121 missing files are mostly pre-listing OTC (NEEQ) "
         f"years of Beijing Stock Exchange firms that CNINFO does not archive."
     )
 
     text["s52_intro"] = (
-        "Table 5.1 reports the raw (pre-standardisation) distributions of the nine "
-        "features, Table 5.2 the rank correlation between each anomaly ranking and the "
+        "Table 5.1 reports the raw distributions of the nine features, before "
+        "winsorisation and standardisation, Table 5.2 the rank correlation between each "
+        "anomaly ranking and the "
         "Beneish M-Score, and Table 5.3 the event rates and enrichment ratios at the "
         "top-5%, top-10% and top-15% review thresholds under both benchmark definitions."
     )
 
     text["t51_caption"] = (
-        f"Table 5.1. Descriptive statistics of the nine features before standardisation "
-        f"({num['frame_years']:,} firm-years)."
+        f"Table 5.1. Descriptive statistics of the nine features in raw form, before "
+        f"winsorisation and standardisation ({num['frame_years']:,} firm-years)."
     )
     text["p_after_t51"] = (
         "The financial features are right-skewed with heavy tails - for example "
@@ -781,11 +968,13 @@ def prose(num: dict) -> dict:
         "the pipeline winsorises every feature at the 1st and 99th percentiles before "
         "standardisation. Two benchmark definitions are used throughout. The legacy "
         "definition follows Beneish (1999) literally and treats M > -1.78 as a risk flag; "
-        f"in this sample it flags {num['legacy_flag']:,} of {num['n']:,} usable firm-years "
+        f"in this sample it flags {num['legacy_flag']:,} of {num['n']:,} analysed firm-years "
         f"({num['legacy_share'] * 100:.1f}%), far above the single-digit incidence "
         "reported for Beneish's original US sample, so it is best read as a weak external "
-        "reference rather than an event indicator. Because a benchmark that flags five "
-        "firms in eight mechanically dilutes every enrichment ratio towards one, we also "
+        "reference rather than an event indicator. Because a cut-off that flags "
+        f"{num['legacy_share'] * 100:.0f}% of the sample is far above the incidence the "
+        "score was calibrated for, every enrichment ratio is mechanically diluted towards "
+        "one, so we also "
         "report a recalibrated definition that flags the top decile of the sample's own "
         f"M-Score distribution (M > {num['q90']:.2f}, {num['cal_flag']:,} firm-years). The "
         "recalibrated benchmark is a relative ranking target, not an estimate of the fraud "
@@ -802,49 +991,54 @@ def prose(num: dict) -> dict:
     )
 
     text["p_after_t53"] = (
-        "Under the legacy benchmark, the finance-only Isolation Forest shows a weak but "
-        "highly significant positive rank agreement with the M-Score "
-        f"(rho = {rho_fin:.3f}, {_p_inline(num['p_if_finance'])}), and its top-10% review "
-        f"list contains {num['en_legacy_if_finance_10']:.2f} times the sample-wide flag "
-        f"rate ({num['en_legacy_if_finance_5']:.2f}x at the top-5% threshold). The "
-        f"text-only ranking is essentially uncorrelated (rho = {rho_text:.3f}), and adding "
-        f"the three textual features does not improve the ranking (fused rho "
-        f"{rho_fused:.3f} against {rho_fin:.3f} for finance-only); the fused model's "
-        f"top-10% enrichment is {num['en_legacy_if_fused_10']:.2f}. RQ1 is therefore "
-        "answered in the negative at the literal cut-off: in this sample, MD&A tone and "
-        "readability features do not add incremental value over structured financial "
-        "features for flagging Beneish-style red flags.\n\n"
-        "The recalibrated benchmark does not overturn that answer, but it sharpens it. "
-        "Because the top decile is defined on the M-Score itself, enrichment ratios rise "
-        "for every model; the informative content is the ordering of the models rather "
-        "than the level. The finance-only model reaches "
-        f"{num['en_calibrated_if_finance_10']:.2f} at the top-10% and "
+        "Under the legacy benchmark the finance-only Isolation Forest is weakly and "
+        f"inversely rank-correlated with the M-Score (rho = {rho_fin:.3f}, "
+        f"{_p_inline(num['p_if_finance'])}): the firm-years it ranks as most anomalous are, "
+        "on average, slightly less likely to sit above the literal -1.78 cut-off. Its "
+        f"top-10% review list still contains {num['en_legacy_if_finance_10']:.2f} times the "
+        f"sample-wide flag rate ({num['en_legacy_if_finance_5']:.2f}x at the top-5% "
+        f"threshold). The text-only ranking is "
+        f"{_corr_clause(rho_text, num['p_if_text'])}, and adding the three textual "
+        f"features leaves the fused ranking at {rho_fused:.3f}, essentially the same as "
+        f"finance-only. RQ1 is therefore answered in the negative: in this sample, MD&A "
+        "tone and readability features add no incremental value over structured financial "
+        "features for reproducing the Beneish screen.\n\n"
+        "Two features of that comparison matter for interpretation. First, the negative "
+        "sign means the two instruments do not merely fail to agree - they order firms "
+        "differently, so a screen built on statement shape selects firm-years that the "
+        "earnings-manipulation proxy tends to place below its cut-off. Second, because the "
+        "recalibrated benchmark defines its top decile on the M-Score itself, enrichment "
+        "ratios rise mechanically for every model, yet the ordering survives: finance-only "
+        f"reaches {num['en_calibrated_if_finance_10']:.2f} at the top-10% and "
         f"{num['en_calibrated_if_finance_5']:.2f} at the top-5% threshold, the fused model "
-        f"reaches {num['en_calibrated_if_fused_10']:.2f} and "
-        f"{num['en_calibrated_if_fused_5']:.2f}; the gap between the two is small relative "
-        "to the spread across thresholds and should not be read as a stable advantage for "
-        "either specification. The text-only ranking improves from "
-        f"{num['en_legacy_if_text_10']:.2f} to {num['en_calibrated_if_text_10']:.2f}, "
-        "that is, from slightly worse than chance to slightly better than chance, but it "
-        "remains far below the financial models. Taken together with the group "
-        "contributions in §5.3, the evidence supports a narrow claim: textual features "
-        "act as a weak, largely orthogonal signal that does not improve a financial "
-        "screen for Beneish-type earnings-management risk, rather than as a substitute "
-        "for it."
+        f"{num['en_calibrated_if_fused_10']:.2f} and "
+        f"{num['en_calibrated_if_fused_5']:.2f}, and the text-only model "
+        f"{num['en_calibrated_if_text_10']:.2f} and "
+        f"{num['en_calibrated_if_text_5']:.2f}, that is, below chance at both thresholds. "
+        "The finance-only lead over the fused model is small and threshold-dependent and "
+        "should not be read as a stable advantage. Taken with the group contributions in "
+        "§5.3 and the external tests in §5.7, the evidence supports a narrow claim: textual "
+        "features behave as a largely orthogonal signal that does not improve - and, in an "
+        "unweighted fusion, slightly dilutes - a financial screen for Beneish-type "
+        "earnings-management risk."
     )
 
     text["s53"] = (
         f"On the fused model, the financial group accounts for "
         f"{num['shap_finance'] * 100:.1f}% of the total absolute SHAP contribution and "
         f"the textual group for {num['shap_text'] * 100:.1f}%. The three most important "
-        f"global features are {top3}, so both groups contribute but the financial side "
-        "dominates, consistent with RQ1.\n\n"
+        f"global features are {top3}; because their contributions are this close, the "
+        "profile is better read as a flat importance distribution than as a dominant "
+        "variable, and both feature families appear among the top attributes.\n\n"
         f"The top-ranked firm-year is firm {num['top1_symbol']} ({num['top1_year']}, "
         f"sub-industry {num['top1_industry']}), with a fused anomaly score of "
-        f"{num['top1_score']:.3f} and an M-Score of {num['top1_mscore']:,.1f}. Its largest "
-        f"local SHAP drivers are {drivers}, indicating an unusual combination of "
-        "receivables, revenue and operating cash flow relative to its subindustry-year "
-        "peers."
+        f"{num['top1_score']:.3f} and an M-Score of {num['top1_mscore']:,.1f}, that is, a "
+        f"firm the Beneish proxy does not flag. Its largest local SHAP drivers are "
+        f"{drivers} — {_drivers_profile(num['top1_drivers'])} relative to "
+        "its subindustry-year peers. The local explanation therefore illustrates the "
+        "inverse relation documented in §5.2 rather than corroborating the benchmark: the "
+        "Isolation Forest responds to statement shape, while the M-Score weights the same "
+        "statements differently and, in this sample, ranks such firms lower."
     )
 
     by_year = num.get("rho_by_year", {})
@@ -854,8 +1048,9 @@ def prose(num: dict) -> dict:
         negative_years = sum(1 for year in years if by_year[year]["if_text"] < 0)
         yearly_sentence = (
             f"The ordering is also stable year by year (finance-only rho by year: {fin_by_year}); "
-            f"the text-only correlation is negative in {negative_years} of {len(years)} years and the "
-            "fused ranking trails the finance-only ranking in every year."
+            f"the text-only correlation is weakly negative in {negative_years} of {len(years)} years "
+            "and the fused correlation never departs from the finance-only value by more than "
+            "0.01."
         )
     else:
         yearly_sentence = ""
@@ -867,14 +1062,14 @@ def prose(num: dict) -> dict:
         f"is only {num['overlap_fin_text']:.3f}, so the two signal families order very "
         "different firms. The choice of benchmark changes the level of every enrichment "
         "ratio but not this ordering: under the recalibrated benchmark the finance-only "
-        f"and fused models remain within {abs(num['en_calibrated_if_fused_10'] - num['en_calibrated_if_finance_10']):.2f} "
-        "of each other at the top-10% threshold, and the text-only model stays below both. "
-        "The autoencoder reconstruction-error ranking does not replicate the main result "
-        f"at all: its correlation with the benchmark is {rho_ae:.3f} "
-        f"({_p_inline(num['p_ae_fused'])}) and its top-10% enrichment is "
-        f"{num['en_legacy_ae_fused_10']:.3f} under the legacy cut-off "
-        f"({num['en_calibrated_ae_fused_10']:.3f} recalibrated), that is, indistinguishable "
-        "from chance. " + yearly_sentence + " The finding is therefore a property of the "
+        f"model leads the fused model by {num['en_calibrated_if_finance_10'] - num['en_calibrated_if_fused_10']:.2f} "
+        "at the top-10% threshold, and the text-only model stays below both. "
+        "The autoencoder reconstruction-error ranking does not reproduce the main result: "
+        f"its rank correlation with the benchmark is {rho_ae:.3f} "
+        f"({_p_inline(num['p_ae_fused'])}), and its top-10% enrichment is "
+        f"{num['en_legacy_ae_fused_10']:.2f} under the legacy cut-off "
+        f"({num['en_calibrated_ae_fused_10']:.2f} recalibrated), barely above chance. "
+        + yearly_sentence + " The conclusion is therefore a property of the "
         "Isolation Forest specification combined with these features, not a model-free "
         "property of the data, and it should be read as a screening signal rather than a "
         "stable risk label."
@@ -892,20 +1087,28 @@ def prose(num: dict) -> dict:
     else:
         lex_sentence = "the lexicon is matched word by word"
 
+    benchmark_body = _benchmark_finding(num).replace(
+        "The study's most robust result concerns the benchmark rather than the text. ", ""
+    )
     text["s55"] = (
-        "The score is a review-priority ranking signal, not a verdict on fraud. Three "
-        "limitations bound the interpretation. First, the benchmark is imperfect in this "
-        f"setting: the literal -1.78 cut-off flags {num['legacy_share'] * 100:.1f}% of the "
-        "sample, and the recalibrated top-decile definition is a relative target rather "
-        "than an estimate of the true base rate, so neither delivers a clean precision "
-        f"figure. Second, the textual measures remain approximations: {lex_sentence}; "
-        "readability is a character-level proxy for processing "
-        "cost, and scanned or unreadable reports are excluded. Third, the design is a "
-        "three-year manufacturing sample, so the negative RQ1 result should be read as "
-        "evidence about this period and industry rather than as a general law about "
-        "Chinese disclosure text. These choices are disclosed in the reproducibility guide "
-        "(§5), and every table in this section can be regenerated from the released "
-        "scripts."
+        "The evidence supports two claims, one negative and one positive. The negative "
+        f"claim is that the three MD&A features do not improve the unsupervised ranking "
+        f"against the Beneish M-Score (rho {rho_fused:.3f} fused, {rho_fin:.3f} "
+        f"finance-only, against {rho_text:.3f} for text alone). The positive claim concerns "
+        f"the benchmark itself. {benchmark_body} The inversion is therefore not a nuisance "
+        "but a finding: the M-Score cannot serve as a proxy for audit risk in this setting, "
+        "and a null RQ1 may reflect the target rather than the text. Three limitations "
+        f"bound the interpretation. First, the literal -1.78 cut-off flags "
+        f"{num['legacy_share'] * 100:.1f}% of the sample and the recalibrated top-decile "
+        "definition is a relative target rather than an estimate of the true base rate, so "
+        "neither delivers a clean precision figure; the external outcome is the sharper test "
+        "precisely because it is not circular. Second, the textual measures remain "
+        f"approximations: {lex_sentence}; readability is a character-level proxy for "
+        "processing cost, and scanned or unreadable reports are excluded. Third, the design "
+        "is a three-year manufacturing sample, so the negative RQ1 result should be read as "
+        "evidence about this period and industry rather than as a general law about Chinese "
+        "disclosure text. These choices are disclosed in the reproducibility guide (§5), and "
+        "every table in this section can be regenerated from the released scripts."
     )
 
     density_all = num.get("lexicon_density") or {}
@@ -957,12 +1160,16 @@ def prose(num: dict) -> dict:
         "Chinese financial sentiment list of Yao et al. (2021), uncertainty terms were "
         "expanded, substring counting was replaced by jieba token matching, and the single "
         "threshold was supplemented by a sample-calibrated top-decile definition: "
-        f"{density_phrase}. {moved} The improvement is therefore in the credibility of the "
-        "null, not in its sign - the second specification removes the two most obvious "
-        "measurement objections while leaving RQ1 answered negatively. Both specifications "
-        "are retained: the frozen v0.1 lexicons, the cached MD&A text, and the archived "
-        "result tables are stored in the repository, and scripts/compare_runs.py reproduces "
-        "the comparison reported here."
+        f"{density_phrase}. {moved} One caveat applies to that comparison: the first "
+        "specification was estimated on the earlier financial intermediate, in which the "
+        "annual statement rows were merged positionally and therefore lagged or mixed "
+        "firm-years (§5.1 describes the repair). Part of the movement in Table 5.4 - "
+        "notably the fused correlation changing sign - reflects that data correction "
+        "rather than the lexicon alone. With that caveat, the second specification removes "
+        "the two most obvious measurement objections while leaving RQ1 answered negatively. "
+        "Both specifications are retained: the frozen v0.1 lexicons, the cached MD&A text, "
+        "and the archived result tables are stored in the repository, and "
+        "scripts/compare_runs.py reproduces the comparison reported here."
     )
     text.update(_section57_en(num))
     return text
@@ -1308,11 +1515,11 @@ def _table_54_cn(num: dict) -> list[list[str]]:
             ),
         ],
         ["不确定词表", "23 词", "约 100 词（Loughran-McDonald 与曾庆生等）"],
-        ["Beneish 基准", "仅原文阈值 M > −1.78（标红 62.8%）", "原文阈值 + 样本前十分位校准（M > 16.52，10%）"],
+        ["Beneish 基准", f"仅原文阈值 M > −1.78（标红 {num['legacy_share'] * 100:.1f}%）", f"原文阈值 + 样本前十分位校准（M > {num['q90']:.2f}，10%）"],
         ["文本单独 / 融合秩相关", f"{text_rho_old} / {fused_rho_old}", f"{num['rho_if_text']:.3f} / {num['rho_if_fused']:.3f}"],
         ["自编码器秩相关（p）", ae_old, f"{num['rho_ae_fused']:.3f}（p = {num['p_ae_fused']:.3f}）"],
         ["文本单独前 10% 富集（校准口径）", text_en_old, f"{num['en_calibrated_if_text_10']:.2f}"],
-        ["RQ1 的回答", "文本无增量价值", "结论不变：文本无增量价值"],
+        ["RQ1 的回答", "对 Beneish 筛查无增量价值", "对 Beneish 筛查结论不变；监督模型仅有微小、统计上不可区分的增量（表 5.6）"],
     ]
 
 
@@ -1331,9 +1538,9 @@ def prose_cn(num: dict) -> dict:
     text: dict = {}
 
     text["abstract"] = (
-        f"真实样本完成清洗后，本文最终纳入 {num['n']:,} 个公司—年度观测和 "
-        f"{num['n_firms']:,} 家公司。结果显示，融合模型与 Beneish M-Score 的 Spearman "
-        f"秩相关为 {rho_fused:.3f}，低于仅使用财务特征模型的 {rho_fin:.3f}，文本特征未带来增量。"
+        _benchmark_finding_cn(num)
+        + f" 以该基准衡量，文本没有增量：融合模型与 Beneish M-Score 的 Spearman 秩相关为 "
+        f"{rho_fused:.3f}，与仅使用财务特征的 {rho_fin:.3f} 几乎相同，两者都是弱负相关。"
         f"在前 10% 审查队列中，按样本自身校准的基准（M-Score 前十分位）计算，融合模型的富集率为 "
         f"{num['en_calibrated_if_fused_10']:.2f}，财务单独模型为 "
         f"{num['en_calibrated_if_finance_10']:.2f}；若沿用 Beneish 原始 −1.78 阈值，两者分别为 "
@@ -1349,9 +1556,12 @@ def prose_cn(num: dict) -> dict:
         f"{num['frame_by_year'].get(2021, 0):,}；2022 年 {num['frame_by_year'].get(2022, 0):,}；"
         f"2023 年 {num['frame_by_year'].get(2023, 0):,}），年度可用观测为 "
         f"{num['by_year'].get(2021, 0):,}、{num['by_year'].get(2022, 0):,}、"
-        f"{num['by_year'].get(2023, 0):,}。年报下载覆盖率为 98.8%，MD&A 可用率为 {year_share}。"
-        f"被排除的观测主要包括无法解析的 PDF、扫描件或少于 300 token 的短文本（"
-        f"{num['text_suspicious']} 条），以及巨潮未收录的北交所挂牌前年份；逐条审计结果见可复现指南的下载核对表。"
+        f"{num['by_year'].get(2023, 0):,}。年报下载覆盖率为 98.8%，MD&A 文本每年在 "
+        f"{num['text_extracted']:,} 个公司—年度上成功抽取（{year_share}）：其中 "
+        f"{num['text_ok']:,} 条通过质量筛选，{num['text_suspicious']} 条少于 300 token，仍保留在样本中"
+        f"并打上标记；另有 {num['text_missing']} 条无可解析文本（PDF 缺失 {num['text_no_pdf']} 条、"
+        f"无 MD&A 章节 {num['text_no_mda']} 条、抽取失败 {num['text_failed']} 条）。七条短文本全部"
+        f"留在 {num['n']:,} 个完整观测之内。逐条审计结果见可复现指南的下载核对表。"
     )
 
     text["s52_intro"] = (
@@ -1359,7 +1569,7 @@ def prose_cn(num: dict) -> dict:
         "表 5.3 报告前 5%、10% 与 15% 审查阈值下的事件率与富集率，并同时给出两种基准口径。"
     )
     text["t51_caption"] = (
-        f"表 5.1 九个特征标准化前的描述统计（{num['frame_years']:,} 个公司—年度观测）。"
+        f"表 5.1 九个特征在缩尾与标准化之前的原始描述统计（{num['frame_years']:,} 个公司—年度观测）。"
     )
     text["p_desc"] = (
         "财务特征呈右偏厚尾（例如应收账款周转率与营收增长率的极值很大），因此管线在标准化前"
@@ -1378,24 +1588,27 @@ def prose_cn(num: dict) -> dict:
     )
     text["p_results"] = (
         f"财务单独、文本单独、融合 Isolation Forest 以及融合自编码器与 Beneish M-Score 的 "
-        f"Spearman 秩相关分别为 {rho_fin:.3f}、{rho_text:.3f}、{rho_fused:.3f} 和 {rho_ae:.3f}。"
-        f"在 legacy 口径下，文本特征未带来增量价值（融合 {rho_fused:.3f} 低于财务单独 "
-        f"{rho_fin:.3f}），RQ1 不成立；前 10% 队列中融合模型的事件率为 "
-        f"{num['ev_legacy_if_fused_10']:.3f}、富集率为 {num['en_legacy_if_fused_10']:.2f}"
-        f"（财务单独为 {num['en_legacy_if_finance_10']:.2f}）。改用校准口径后，各模型的富集率整体"
-        "抬升（这是基准定义使然），但模型之间的排序没有改变：财务单独为 "
-        f"{num['en_calibrated_if_finance_10']:.2f}，融合为 "
-        f"{num['en_calibrated_if_fused_10']:.2f}，两者差距小于阈值变动带来的波动；文本单独由 "
-        f"{num['en_legacy_if_text_10']:.2f} 升至 {num['en_calibrated_if_text_10']:.2f}，由略低于随机"
-        "升至略高于随机，但仍显著低于财务模型。因此 RQ1 的否定结论在两种口径下均成立。"
+        f"Spearman 秩相关分别为 {rho_fin:.3f}（{_p_inline(num['p_if_finance'])}）、"
+        f"{rho_text:.3f}（{_p_inline(num['p_if_text'])}）、{rho_fused:.3f}"
+        f"（{_p_inline(num['p_if_fused'])}）和 {rho_ae:.3f}（{_p_inline(num['p_ae_fused'])}）。"
+        "四个相关的符号均为负且数值很小：财务单独显著为负，文本单独与零无异，融合模型与财务单独"
+        "几乎相同，说明加入文本特征并未改善排序，RQ1 不成立。前 10% 队列中，财务单独的富集率为 "
+        f"legacy 口径 {num['en_legacy_if_finance_10']:.2f}、校准口径 "
+        f"{num['en_calibrated_if_finance_10']:.2f}；融合为 "
+        f"{num['en_legacy_if_fused_10']:.2f} 与 {num['en_calibrated_if_fused_10']:.2f}；文本单独为 "
+        f"{num['en_legacy_if_text_10']:.2f} 与 {num['en_calibrated_if_text_10']:.2f}，在两种口径下都"
+        "低于随机。负号的含义是两套工具对公司排序的方向相反，而非彼此印证：M-Score 高的公司并未"
+        "被异常分数排到前列。因此 RQ1 的否定结论在两种基准口径下均成立。"
     )
     text["s53"] = (
         f"SHAP 全局解释显示，财务组与文本组的绝对贡献占比分别为 "
-        f"{num['shap_finance'] * 100:.1f}% 和 {num['shap_text'] * 100:.1f}%。前三项全局特征为 "
-        f"{top3}。对于最高排序观测 {num['top1_symbol']}（{num['top1_year']} 年，子行业 "
-        f"{num['top1_industry']}），融合异常分数为 {num['top1_score']:.3f}，M-Score 为 "
-        f"{num['top1_mscore']:,.1f}，主要局部驱动因素为 {drivers}。这些结果说明财务特征主导融合排序，"
-        "文本特征贡献有限，但并不构成因果解释或违规认定。"
+        f"{num['shap_finance'] * 100:.1f}% 和 {num['shap_text'] * 100:.1f}%。各特征的平均绝对贡献"
+        f"相当接近，排名前三的是 {top3}，说明重要性分布较平坦，两类特征都进入前列。对于最高排序"
+        f"观测 {num['top1_symbol']}（{num['top1_year']} 年，子行业 {num['top1_industry']}），融合"
+        f"异常分数为 {num['top1_score']:.3f}，M-Score 为 {num['top1_mscore']:,.1f}（Beneish 基准"
+        f"并未将其标红），主要局部驱动因素为 {drivers}。该案例说明融合模型捕捉的是报表结构与文本"
+        "语调的组合，而非 M-Score 所度量的应计操纵，正与 §5.2 的负相关一致；这些结果不构成因果"
+        "解释或违规认定。"
     )
     by_year_cn = num.get("rho_by_year", {})
     if by_year_cn:
@@ -1406,7 +1619,8 @@ def prose_cn(num: dict) -> dict:
         negative_cn = sum(1 for year in years_cn if by_year_cn[year]["if_text"] < 0)
         yearly_cn = (
             f"分年度看排序也很稳定：财务单独的秩相关为 {fin_by_year_cn}；文本单独在 "
-            f"{len(years_cn)} 年中有 {negative_cn} 年为负，且融合模型在每一年都低于财务单独模型。"
+            f"{len(years_cn)} 年中有 {negative_cn} 年为负，且融合模型与财务单独的差距在每一年"
+            "都不超过 0.01。"
         )
     else:
         yearly_cn = ""
@@ -1416,7 +1630,7 @@ def prose_cn(num: dict) -> dict:
         f"财务与文本仅 {num['overlap_fin_text']:.3f}，说明两类信号排序出的公司差异很大。"
         f"自编码器重建误差与基准的相关为 {rho_ae:.3f}（p = {num['p_ae_fused']:.3f}），前 10% "
         f"富集率为 {num['en_legacy_ae_fused_10']:.3f}（校准口径 "
-        f"{num['en_calibrated_ae_fused_10']:.3f}），与随机无异，未复现主结果。"
+        f"{num['en_calibrated_ae_fused_10']:.3f}），仅略高于随机，未复现主结果。"
         + yearly_cn +
         "更换基准只改变富集率的"
         "水平，不改变模型排序，因此结论对模型选择敏感，宜作为筛查信号而非稳定风险标签。"
@@ -1475,10 +1689,12 @@ def prose_cn(num: dict) -> dict:
     text["s56b"] = (
         f"表 5.4 汇总了两版设定。第二版以姚加权等（2021）完整中文金融情感词表替换引导词典，"
         f"扩充不确定词表，将子串计数改为 jieba 词元精确匹配，并在单一阈值之外补充了样本前十分位的"
-        f"校准口径：{density_phrase}。{moved}。因此改进体现在否定结论的可靠性上，而非结论的方向——"
-        f"第二版消除了两个最容易被指出的度量质疑，而 RQ1 的回答依然是文本特征没有增量价值。"
-        f"两版设定均被保留：第一版的词典冻结文件、MD&A 文本缓存与结果表都存放在仓库中，"
-        f"scripts/compare_runs.py 可复现本文报告的差异。"
+        f"校准口径：{density_phrase}。{moved}。需要说明的是，第一版的财务中间表按位置合并三张报表，"
+        f"导致部分年报行取到上一年度或错配的数据；第二版在修正后的年报口径上重跑，因此表 5.4 中融合"
+        f"相关由正转负，部分反映的是这次数据修正而非词典变化。改进的实质是让否定结论建立在正确的"
+        f"财务口径上——第二版消除了两个最容易被指出的度量质疑，而 RQ1 的回答依然是文本特征对 Beneish "
+        f"筛查没有增量价值。两版设定均被保留：第一版的词典冻结文件、MD&A 文本缓存与结果表都存放在"
+        f"仓库中，scripts/compare_runs.py 可复现本文报告的差异。"
     )
     text.update(_section57_cn(num))
     return text
@@ -1640,7 +1856,7 @@ def _section57_cn(num: dict) -> dict:
         f"表 5.5 报告排序质量。财务单独 Isolation Forest 能迁移到真实结果：非标意见 AUC 为 "
         f"{auc(fin)}，前 10% 队列事件率为基准率的 {fin.get('lift_10pct', float('nan')):.2f} 倍，"
         f"覆盖全部非标意见的 {fin.get('recall_10pct', float('nan')) * 100:.1f}%。文本单独接近随机"
-        f"（{auc(txt)}），融合居中（{auc(fused)}），自编码器低于随机（{auc(ae)}）。最值得注意的是"
+        f"（{auc(txt)}），融合居中（{auc(fused)}），自编码器更弱（{auc(ae)}）。最值得注意的是"
         f"基准本身：Beneish M-Score 把非标意见公司排在样本后段（{auc(proxy)}），即回答 RQ1 所"
         "依据的代理变量与审计师的实际判断方向相反。"
         f"对前瞻的违规公告各分数都更弱，最好的是财务单独对披露类违规的 {auc(fin_v)}，"
@@ -1656,8 +1872,9 @@ def _section57_cn(num: dict) -> dict:
         f"梯度提升增量 {dtext(gain('mod_opinion', 'hgb'))}；披露类违规标签的增量为 "
         f"{dtext(gain('violation_disclosure_t1', 'logit'))} 与 "
         f"{dtext(gain('violation_disclosure_t1', 'hgb'))}。在 {len(gains)} 个标签×模型组合中，"
-        f"增量为正的有 {positive} 个，区间不含 0 的有 {significant} 个。增量虽小但方向一致，"
-        "且与 §5.2 基于 Beneish 的结论相反。"
+        f"增量为正的有 {positive} 个，区间不含 0 的有 {significant} 个。增量虽小、方向总体为正，"
+        "但它针对的是审计师与监管机构的外部判断，与 §5.2 针对 Beneish 会计操纵构念的否定结论"
+        "并不冲突：两者度量的是不同的构念。"
     )
     text["s57e"] = (
         "两点保留意见使这不能成为干净的正面结论。第一，审计意见与会计年度同期，"
@@ -1665,7 +1882,7 @@ def _section57_cn(num: dict) -> dict:
         "第二，两类标签都由审计师与监管机构产生，其能力与注意力随时间和公司变化，误差并非经典误差。"
         "实质解读是构念错配：MD&A 语调与可读性对审计师所监管的披露过程有信息量，"
         "但对 Beneish 所度量的会计操纵构念几乎没有信息量。因此 RQ1 的否定结论只对 Beneish 目标成立；"
-        "面对真实审计结果，文本块带有虽小但可检测的增量——这是本文数据能够支撑的更稳妥表述。"
+        "面对真实审计结果，文本块带有小幅、并不总是可检测的增量——这是本文数据能够支撑的更稳妥表述。"
     )
     return text
 
