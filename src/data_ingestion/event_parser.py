@@ -34,6 +34,8 @@ Revision History
 ----------------
 2026-11-11  initial version: audit-opinion and violation parsers, narrow and
             wide opinion definitions, t+1 violation flags.
+2026-11-24  add strict_forward_labels(): t+1 labels gated on the annual-report
+            disclosure date so they stay prospective.
 """
 from __future__ import annotations
 
@@ -344,6 +346,84 @@ def build_event_table(
     merged["opinion_class"] = merged["opinion_class"].fillna("missing")
 
     return merged.sort_values(["symbol", "fiscal_year"]).reset_index(drop=True)
+
+
+def strict_forward_labels(
+    sample: pd.DataFrame,
+    audit: pd.DataFrame | None = None,
+    violations: pd.DataFrame | None = None,
+    window_days: int | None = 365,
+) -> pd.DataFrame:
+    """Rebuild the t+1 violation labels with a disclosure-date gate.
+
+    ``build_event_table`` treats any announcement whose calendar year is
+    ``fiscal_year + 1`` as forward-looking. Because a fiscal year t annual
+    report is typically published in April of t+1, an announcement from
+    January to March of t+1 precedes the report and is therefore not
+    prospective. This function keeps a violation only when its announcement
+    date is strictly later than the annual-report disclosure date of year t
+    (and, when ``window_days`` is given, no later than ``window_days`` days
+    after that date). Rows without a disclosure date keep no strict label and
+    are flagged through ``has_report_date``.
+
+    Returns one row per ``(symbol, fiscal_year)`` with the strict labels, the
+    loose labels recomputed on the same rows, and announcement counts so the
+    drop can be quantified.
+    """
+    base = sample[["symbol", "fiscal_year"]].copy()
+    base["symbol"] = _clean_code(base["symbol"])
+    base["fiscal_year"] = base["fiscal_year"].astype(int)
+
+    if audit is None:
+        audit = parse_audit_opinions()
+    report = audit[["symbol", "fiscal_year", "announce_date"]].copy()
+    report["symbol"] = _clean_code(report["symbol"])
+    report["fiscal_year"] = report["fiscal_year"].astype(int)
+    base = base.merge(report.drop_duplicates(["symbol", "fiscal_year"]), on=["symbol", "fiscal_year"], how="left")
+
+    if violations is None:
+        violations = parse_violations()
+    viol = violations[["symbol", "declare_date", "declare_year", "is_disclosure"]].copy()
+    viol["symbol"] = _clean_code(viol["symbol"])
+    viol = viol.drop_duplicates(["symbol", "declare_date", "is_disclosure"])
+
+    expanded = base.assign(_join_year=base["fiscal_year"] + 1).merge(
+        viol,
+        left_on=["symbol", "_join_year"],
+        right_on=["symbol", "declare_year"],
+        how="left",
+    )
+    if "declare_date" not in expanded.columns:
+        expanded["declare_date"] = pd.NaT
+    after_report = expanded["declare_date"] > expanded["announce_date"]
+    if window_days is not None:
+        limit = pd.to_datetime(expanded["announce_date"]) + pd.Timedelta(days=window_days)
+        after_report = after_report & (expanded["declare_date"] <= limit)
+    announced = expanded["declare_date"].notna()
+    disclosure = expanded["is_disclosure"].fillna(0).astype(int).eq(1)
+
+    expanded["_strict_any"] = after_report.astype(int)
+    expanded["_strict_disc"] = (after_report & disclosure).astype(int)
+    expanded["_loose_any"] = announced.astype(int)
+    expanded["_loose_disc"] = (announced & disclosure).astype(int)
+
+    grouped = expanded.groupby(["symbol", "fiscal_year"], as_index=False).agg(
+        violation_any_t1_strict=("_strict_any", "max"),
+        violation_disclosure_t1_strict=("_strict_disc", "max"),
+        violation_any_t1_loose=("_loose_any", "max"),
+        violation_disclosure_t1_loose=("_loose_disc", "max"),
+        n_announcements=("_loose_any", "sum"),
+        n_announcements_strict=("_strict_any", "sum"),
+        has_report_date=("announce_date", lambda values: int(values.notna().any())),
+    )
+    for column in (
+        "violation_any_t1_strict",
+        "violation_disclosure_t1_strict",
+        "violation_any_t1_loose",
+        "violation_disclosure_t1_loose",
+    ):
+        grouped[column] = grouped[column].fillna(0).astype(int)
+    return grouped.sort_values(["symbol", "fiscal_year"]).reset_index(drop=True)
 
 
 def event_summary(table: pd.DataFrame) -> dict[str, object]:
