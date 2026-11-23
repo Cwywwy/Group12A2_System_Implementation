@@ -2,10 +2,14 @@
 
 ## 2026-11-23
 
+- 精简版按“压到 12–15 页”清单执行（除参考文献字号/栏数一项外全部）：§5.6 两版对照（含表 5.4）、表 5.1 与表 5.3 移入补充附录，删去图 5.1 / 5.4 / 5.6 并把余下三图重编号为图 5.1–5.3，表 5.5 / 5.6 顺次改为表 5.1 / 5.2；`scripts/patch_manuscript_docx.py` 增 `TABLE_REMAP`、`FIGURE_REMAP`、`_drop_figure_block()`、`_remap_paragraphs()`、`slim_compact()`、`split_appendices()`、`tighten_typography()`。
+- 版面压缩：正文行距 1.45 → 1.2，三图高度上限 2.3 in；`11.23base/Group12A2_Final_EN_corrected_compact.docx` 由 22 页降至 **15 页**（117 段 / 3 表 / 3 图 / 6,827 词），附录另存 `11.23base/Group12A2_Final_EN_corrected_compact_appendix.docx`（**4 页**，14 段 / 4 表，含表 A1、B1–B3）。说明：仅把表移入附录并不减页（附录仍占页），页数下降来自删图、合并段落与行距。
+- 交叉引用随之改写：正文改指 `Supplementary Table B1/B2` 与 `the supplementary appendix`，原 §5.7 重编号为 §5.6，原 `Section 5.6` 改指补充附录；英文母本（23 页 / 145 段 / 7 表 / 6 图）与中文版（87 段 / 7 表）保持不变；全套 **130/130 通过**。
+
 - 新增 §5.8「样本、年份与结果定义的稳健性检验」与表 5.7（9×6 双面板），把 `DSW_all` / `DSW_dv` / `DSW_branch` 三处分支实验并入主论文，仅作测量敏感性证据：`scripts/build_section5.py` 增 `EXT` 数据层、`_table_57()` / `_table_57_cn()`、`_section58_en()` / `_section58_cn()`，正文 766 词，四个小节分别为行业×年份 2×2、逐年 q90 阈值、六标签结果定义、两项零结果。
 - 收窄“文本无增量”表述：摘要、§5.2 结论句、§5.5 与结论段均限定为“对 Beneish 式**无监督**排序无增量”，并补一句“监督式监管标签上融合的增量绝对值 ≤0.018，且凡能与零区分之处为负”（依 `DSW_dv` 的 12 组区间，7 组整体为负）。
 - 中文版结论段沿用旧数字，本次按英文重写（段 78/79）：清除 ρ=0.136、0.103、富集 1.22、SHAP 65.9%/34.1%、重叠 0.828；中文摘要同步。中文稿现 87 段 / 7 表。
-- `outputs/.tmp/apply_corrected_results.py` 重写为函数式就地打补丁（`clone_para` / `clone_table` / `fill_table` / `insert_section58` / `insert_compact`）：英文母本 145 段 / 7 表 / 6 图，另出精简版 `11.23base/Group12A2_Final_EN_corrected_compact.docx`（138 段，正文仅一句补充说明，表 5.7 与过程移入附录 A 及表 A1）。
+- `scripts/patch_manuscript_docx.py` 重写为函数式就地打补丁（`clone_para` / `clone_table` / `fill_table` / `insert_section58` / `insert_compact`）：英文母本 145 段 / 7 表 / 6 图，另出精简版 `11.23base/Group12A2_Final_EN_corrected_compact.docx`（138 段，正文仅一句补充说明，表 5.7 与过程移入附录 A 及表 A1）。
 - 新增 4 项回归测试（表 5.7 形状与面板、§5.8 键集、措辞收窄、中文结论对齐），全套 **130/130 通过**；页数：英文全文 23 页、精简版 22 页、中文 10 页。
 
 - 第二轮数据修复（列取错）：`src/data_ingestion/csmar_parser.py` 的 `CODE_ALIASES` 把 `revenue` 从“营业总收入”（B001100000）改为“营业收入”（B001101000），`cogs` 从“营业总成本”改为“营业成本”（B001201000）；`probe_field_columns()` 改为按别名优先级查找；`depreciation` 别名置空（直接法现金流量表无折旧行），`src/features/beneish.py` 将 DEPI 中性化为 1.0。
