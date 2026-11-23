@@ -2,6 +2,12 @@
 
 ## 2026-11-23
 
+- 新增 §5.8「样本、年份与结果定义的稳健性检验」与表 5.7（9×6 双面板），把 `DSW_all` / `DSW_dv` / `DSW_branch` 三处分支实验并入主论文，仅作测量敏感性证据：`scripts/build_section5.py` 增 `EXT` 数据层、`_table_57()` / `_table_57_cn()`、`_section58_en()` / `_section58_cn()`，正文 766 词，四个小节分别为行业×年份 2×2、逐年 q90 阈值、六标签结果定义、两项零结果。
+- 收窄“文本无增量”表述：摘要、§5.2 结论句、§5.5 与结论段均限定为“对 Beneish 式**无监督**排序无增量”，并补一句“监督式监管标签上融合的增量绝对值 ≤0.018，且凡能与零区分之处为负”（依 `DSW_dv` 的 12 组区间，7 组整体为负）。
+- 中文版结论段沿用旧数字，本次按英文重写（段 78/79）：清除 ρ=0.136、0.103、富集 1.22、SHAP 65.9%/34.1%、重叠 0.828；中文摘要同步。中文稿现 87 段 / 7 表。
+- `outputs/.tmp/apply_corrected_results.py` 重写为函数式就地打补丁（`clone_para` / `clone_table` / `fill_table` / `insert_section58` / `insert_compact`）：英文母本 145 段 / 7 表 / 6 图，另出精简版 `11.23base/Group12A2_Final_EN_corrected_compact.docx`（138 段，正文仅一句补充说明，表 5.7 与过程移入附录 A 及表 A1）。
+- 新增 4 项回归测试（表 5.7 形状与面板、§5.8 键集、措辞收窄、中文结论对齐），全套 **130/130 通过**；页数：英文全文 23 页、精简版 22 页、中文 10 页。
+
 - 第二轮数据修复（列取错）：`src/data_ingestion/csmar_parser.py` 的 `CODE_ALIASES` 把 `revenue` 从“营业总收入”（B001100000）改为“营业收入”（B001101000），`cogs` 从“营业总成本”改为“营业成本”（B001201000）；`probe_field_columns()` 改为按别名优先级查找；`depreciation` 别名置空（直接法现金流量表无折旧行），`src/features/beneish.py` 将 DEPI 中性化为 1.0。
 - 重跑 `run_03 → 06 → 03b → 07 → 07b → 11 → 12`：样本 8,000 增至 **9,239 firm-years / 3,488 firms**（90.8%）；事件表此前停在 8,000 行，一并重跑；Beneish 命中率 35.2% 改为 18.2%，Spearman finance/text/fused/AE 为 −0.021/−0.026/−0.018/−0.007，非标意见 AUC 0.812 改为 0.802，Beneish 0.328 改为 0.242（方向相反）。
 - `scripts/build_section5.py` 再次改写：新增 `_corr_clause()` 与 `_mscore_components()`，§5.7 补上 Beneish 方向为负的分解（非标组 TATA −0.105、SGI 0.885，系数奖励正应计与增长），表 5.4 末行与表 5.6 表述收紧为“8 个组合全为正但无区间排除 0”。

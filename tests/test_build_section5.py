@@ -320,3 +320,88 @@ def test_section_57_absent_without_events():
     assert "s57_heading" not in payload
     assert build_section5._abstract_external(num) == ""
     assert build_section5._abstract_external_cn(num) == ""
+
+
+def test_table_57_shape_and_panels():
+    rows = build_section5._table_57()
+    assert len(rows) == 9
+    assert all(len(row) == 6 for row in rows)
+    assert rows[0] == [
+        "Panel A: sample frame",
+        "Years",
+        "n",
+        "Events",
+        "AUC: finance-only",
+        "AUC: Beneish",
+    ]
+    assert rows[1] == ["Manufacturing (C)", "2021-2023", "9,239", "204", "0.802", "0.242"]
+    assert rows[4] == [
+        "All non-financial industries",
+        "2021-2024",
+        "18,415",
+        "469",
+        "0.767",
+        "0.277",
+    ]
+    assert rows[5][0].startswith("Panel B")
+    assert rows[6] == ["Modified audit opinion in t", "469", "0.767", "0.537", "0.745", "0.277"]
+    assert rows[8][-1] == "0.477"
+
+    cn = build_section5._table_57_cn()
+    assert len(cn) == 9
+    assert all(len(row) == 6 for row in cn)
+    assert cn[0][0].startswith("面板 A")
+    assert cn[1] == ["制造业（C）", "2021-2023", "9,239", "204", "0.802", "0.242"]
+    assert cn[5][0].startswith("面板 B")
+
+
+def test_prose_includes_section_58():
+    num = _fake_numbers_v02()
+    num["events"] = _fake_events()
+    keys = (
+        "s58_heading",
+        "s58a",
+        "s58_1_heading",
+        "s58_1a",
+        "t57_caption",
+        "s58_1b",
+        "s58_2_heading",
+        "s58_2a",
+        "s58_2b",
+        "s58_3_heading",
+        "s58_3a",
+        "s58_3b",
+        "s58_4_heading",
+        "s58_4a",
+    )
+    for builder in (build_section5.prose, build_section5.prose_cn):
+        payload = builder(num)
+        for key in keys:
+            assert payload.get(key), key
+        assert "5.8" in payload["s58_heading"]
+        assert "5.8." in payload["s58_1_heading"]
+
+    assert "Robustness" in build_section5.prose(num)["s58_heading"]
+    assert "稳健性" in build_section5.prose_cn(num)["s58_heading"]
+
+
+def test_claims_are_narrowed_to_the_beneish_benchmark():
+    num = _fake_numbers_v02()
+    num["events"] = _fake_events()
+    payload = build_section5.prose(num)
+    assert "Beneish-style unsupervised ranking" in payload["s55"]
+    assert "0.018" in payload["s55"]
+    assert "unsupervised" in payload["p_after_t53"]
+    assert "0.018" in payload["p_after_t53"]
+    cn = build_section5.prose_cn(num)
+    assert "Beneish" in cn["s55"]
+    assert "0.018" in cn["s55"]
+
+
+def test_cn_conclusion_is_realigned_with_the_english_text():
+    num = _fake_numbers_v02()
+    num["events"] = _fake_events()
+    payload = build_section5.prose_cn(num)
+    assert "5.8" in payload["cn_conclusion_1"] or "5.8" in payload["cn_conclusion_2"]
+    assert "0.018" in payload["cn_conclusion_2"]
+    assert "Beneish" in payload["cn_conclusion_1"]
