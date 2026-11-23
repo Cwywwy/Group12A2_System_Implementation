@@ -1,0 +1,3 @@
+﻿label,description,n_firm_years,n_loose,n_strict,n_dropped,share_dropped,rate_loose,rate_strict,n_firm_years_without_report_date
+violation_any_t1_strict,Any violation announced after the report (t+1),9239,1965,1543,422,0.21475826972010179,0.2126853555579608,0.16700941660352853,1
+violation_disclosure_t1_strict,Disclosure violation announced after the report (t+1),9239,1337,1040,297,0.22213911742707554,0.14471263123714687,0.11256629505357722,1

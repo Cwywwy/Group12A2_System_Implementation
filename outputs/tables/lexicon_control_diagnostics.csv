@@ -1,0 +1,2 @@
+﻿n_rows,n_firms,share_identical_token_count,mean_abs_readability_diff,mean_abs_sentiment_diff,mean_abs_uncertainty_diff,corr_readability,corr_sentiment,corr_uncertainty
+9239,3488,0.0016235523325035177,0.0,0.08086885817388033,0.0032877046241821806,1.0,0.6151246897157409,0.8467321326829282
