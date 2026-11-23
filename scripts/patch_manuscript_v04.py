@@ -25,7 +25,7 @@ if str(PROJECT_ROOT) not in sys.path:  # allow "python scripts/patch_manuscript_
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.reporting.docx_blocks import append_sentence, insert_block_after, replace_text  # noqa: E402
-from src.reporting.docx_patch import paragraph_texts  # noqa: E402
+from src.reporting.docx_patch import paragraph_texts, replace_paragraph  # noqa: E402
 
 BASE = PROJECT_ROOT / "11.23base"
 FULL = BASE / "Group12A2_Final_EN_corrected.docx"
@@ -174,13 +174,10 @@ def label_rows() -> list[list[str]]:
     ]
 
 
-DEFAULT_SAMPLE_SENTENCE = (
-    "Table B5 reports the resulting attrition: {score:,} firm-years drop because the Beneish score cannot be "
-    "computed, {finance} more because a financial ratio is undefined, and {text:,} because no usable MD&A text "
-    "exists. Because the frame is defined by the industry code rather than by exchange membership, it also "
-    "contains Beijing Stock Exchange listings together with their pre-listing NEEQ years: 202 firms and 408 "
-    "firm-years (4.4% of the analysis sample) carry a BSE series code, so Chinese A-share manufacturing here "
-    "means manufacturing firms with a CSMAR series code rather than exchange-listed A-shares only."
+COMPACT_SAMPLE_SENTENCE = (
+    "Table B5 reports the attrition: {score:,} firm-years lose the Beneish score, {finance} a financial ratio "
+    "and {text:,} their MD&A text, while 202 firms and 408 firm-years (4.4% of the sample) also carry a "
+    "Beijing Stock Exchange series code."
 )
 
 FULL_SAMPLE_SENTENCE = (
@@ -191,10 +188,16 @@ FULL_SAMPLE_SENTENCE = (
     "firm-years (4.4% of the analysis sample) carry a BSE series code."
 )
 
-SCORE_SENTENCE = (
+FULL_SCORE_SENTENCE = (
     "The score itself is left unwinsorised: in the analysis sample it ranges from -387.1 to 9,182.9, and 33 "
     "firm-years (0.4%) exceed an absolute value of 20. Those tails belong to the benchmark rather than to the "
     "features, which are clipped at the 1st and 99th percentiles before standardisation."
+)
+
+COMPACT_SUPERVISED_SENTENCE = (
+    "Table B4 lists the paired increment for every label and model: the fused increment is positive in 8 of 8 "
+    "calendar-year cells and in 6 of 8 strict-gate cells, with no interval excluding zero, while the text-block "
+    "increment is negative in all 16."
 )
 
 SUPERVISED_SENTENCE = (
@@ -209,10 +212,58 @@ SUPERVISED_SENTENCE = (
 
 SUPERVISED_SENTENCE_FULL = SUPERVISED_SENTENCE.replace("Table B4 lists", "The supplementary tables list")
 
+COMPACT_OVERLAP_SENTENCE = (
+    "Both overlap figures divide the intersection by one top decile rather than by the union of the two."
+)
+
 OVERLAP_SENTENCE = (
     "Both overlap figures are intersections divided by the size of one top decile (|A and B| / |A|); because "
     "every decile holds the same number of firm-years the two directions coincide, and the figure is the share "
     "of a top decile recovered by the other ranking rather than a Jaccard index over the union."
+)
+
+COMPACT_ABSTRACT_NEW = (
+    "This study develops and evaluates an explainable anomaly-screening framework for annual reports issued by "
+    "Chinese A-share manufacturing firms from 2021 to 2023. It compares finance-only, text-only, and "
+    "textual-financial feature matrices using a common sample and evaluation design. Six financial indicators "
+    "cover profitability, leverage, growth, operating cash flow, receivables efficiency and accrual-related "
+    "risk; three MD&A indicators cover readability, sentiment balance and uncertainty. Isolation Forest is the "
+    "primary model and an autoencoder an alternative ranking, with SHAP attribution for global and "
+    "firm-year-level drivers. The rankings are evaluated first against the Beneish M-Score as an accounting-risk "
+    "proxy, then against audit opinions and regulatory violation announcements. The study's most robust result "
+    "concerns the benchmark rather than the text. Across 9,239 firm-years from 3,488 firms (90.8% of the 10,172 "
+    "row frame), the finance-only Isolation Forest ranks firm-years with contemporaneous modified audit opinions "
+    "well (AUC 0.802), whereas the Beneish M-Score ranks those same firms below chance (AUC 0.242). The gap is a "
+    "construct mismatch rather than a calibration artefact: modified-opinion firms report contracting sales "
+    "(median SGI 0.88 against 1.08), negative accruals (TATA -0.11 against -0.01) and higher leverage (60% "
+    "against 38%), while the score rewards positive accruals (+4.679) and sales growth (+0.892); it detects "
+    "income-inflating manipulation, not the financial distress that drives modified opinions here. Against the "
+    "Beneish benchmark, the finance-only ranking has a Spearman correlation of -0.021 p = 0.040, against -0.018 "
+    "p = 0.091 for the fused ranking and -0.026 p = 0.013 for the text-only ranking; the three MD&A features "
+    "therefore add no incremental value to the Beneish-style screen, and the negative sign indicates that the "
+    "screen and the M-Score order firms differently rather than agreeing. The ordering survives a wider frame "
+    "and a fourth year (18,415 firm-years: 0.767 against 0.277) and three further outcome labels, where fusion "
+    "never moves AUC by more than 0.018. The fused model's top-10% review queue has 2.10 times the sample-wide "
+    "incidence of cases in the recalibrated Beneish top decile (1.56 under the legacy -1.78 cut-off); these are "
+    "relative enrichment measures, not fraud prevalence estimates. Forward-looking t+1 violation discrimination "
+    "is weak (best AUC 0.596). In supervised firm-grouped cross-validation, adding text to financial features "
+    "produces small positive AUC increments of between 0.001 and 0.012 across the reported outcomes and "
+    "algorithms, of which none excludes zero. The contribution is therefore an empirical demonstration that the "
+    "Beneish score cannot serve as an audit-risk proxy in this setting, together with an honest null for MD&A "
+    "text; the scores are review-priority signals, not direct measures of disclosure quality, fraud, misconduct "
+    "or violations."
+)
+
+COMPACT_AE_SENTENCE = (
+    "The autoencoder does not reproduce that pattern (Spearman correlation with the Beneish M-Score of -0.007, "
+    "p = 0.528), so the findings depend on the choice of anomaly-detection algorithm."
+)
+
+APPENDIX_LEAD = (    "Calendar-year t+1 labels: a t+1 announcement is any violation dated in the calendar year after the fiscal "
+    "year, whether or not it post-dates the annual report. The Beneish score is left unwinsorised and ranges "
+    "from -387.1 to 9,182.9, with 33 firm-years (0.4%) above 20 in absolute value, while the nine features are "
+    "clipped at the 1st and 99th percentiles. Both overlap figures in the body divide the intersection by the "
+    "size of one top decile rather than by the union of the two."
 )
 
 APPENDIX_INTRO_OLD = "summarises in a single sentence."
@@ -232,20 +283,28 @@ def _append(document: Document, anchor: str, sentence: str) -> str:
 def apply_compact() -> dict[str, str]:
     document = Document(str(COMPACT))
     counts = attrition_counts()
-    result = {
+    result = {}
+    rewritten = replace_paragraph(document, "This study develops and evaluates", COMPACT_ABSTRACT_NEW)
+    result["abstract"] = "applied" if rewritten else "skipped"
+    rewritten = replace_paragraph(
+        document, "The autoencoder ranking does not reproduce", COMPACT_AE_SENTENCE
+    )
+    result["autoencoder"] = "applied" if rewritten else "skipped"
+    result.update(
+        {
         "sample": _append(
             document,
             "pre-listing OTC (NEEQ) years of Beijing Stock Exchange firms that CNINFO does not archive.",
-            DEFAULT_SAMPLE_SENTENCE.format(**counts),
+            COMPACT_SAMPLE_SENTENCE.format(**counts),
         ),
-        "score": _append(document, "neither ever enters model training.", SCORE_SENTENCE),
         "supervised": _append(
             document,
             "small and never statistically distinguishable from zero.",
-            SUPERVISED_SENTENCE,
+            COMPACT_SUPERVISED_SENTENCE,
         ),
-        "overlap": _append(document, "0.797", OVERLAP_SENTENCE),
-    }
+        "overlap": _append(document, "0.797", COMPACT_OVERLAP_SENTENCE),
+        }
+    )
     document.save(str(COMPACT))
     return result
 
@@ -259,7 +318,7 @@ def apply_full() -> dict[str, str]:
             "pre-listing OTC (NEEQ) years of Beijing Stock Exchange firms that CNINFO does not archive.",
             FULL_SAMPLE_SENTENCE.format(**counts),
         ),
-        "score": _append(document, "neither ever enters model training.", SCORE_SENTENCE),
+        "score": _append(document, "neither ever enters model training.", FULL_SCORE_SENTENCE),
         "supervised": _append(
             document,
             "small and never statistically distinguishable from zero.",
@@ -293,10 +352,7 @@ def apply_appendix() -> dict[str, str]:
         if anchor is None:
             result["tables"] = "miss"
         else:
-            labels = (
-                "Calendar-year t+1 labels: a t+1 announcement is any violation dated in the calendar year after "
-                "the fiscal year, whether or not it post-dates the annual report."
-            )
+            labels = APPENDIX_LEAD
             blocks = [
                 ("heading", "Appendix B.3 Additional tables"),
                 ("text", labels),
