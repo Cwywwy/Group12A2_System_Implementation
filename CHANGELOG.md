@@ -2,7 +2,7 @@
 
 ## 2026-11-24
 
-- 新建 `docs/revision/v0.3_issue_register.md`（36 条问题逐条判定：17 成立 / 3 部分成立 / 10 不成立，另 6 条为本次自查新增）与 `docs/revision/claim_boundaries.md`（8 条保留结论、10 条禁用措辞、6 条必须披露项），并把修订计划落到 `.github/plans/2026-11-24-v0.3-consistency-revision.md`。
+- 新建 `docs/revision/v0.3_consistency_revision.md`（36 条问题逐条判定：17 成立 / 3 部分成立 / 10 不成立，另 6 条为本次自查新增；同一文件内含 8 条保留结论、10 条禁用措辞、6 条必须披露项、执行结果与证据索引 —— 原本拆成登记册与边界清单两份，按「文档收敛到一份」的要求合并），并把修订计划落到 `.github/plans/2026-11-24-v0.3-consistency-revision.md`。
 - 完成正文闭合（Phase 1）：`scripts/patch_manuscript_v03.py` 对三个 docx 源文件做锚点式替换，共 14 组修正 —— 600870 案例改为「两者一致、且该年 t+1 有披露违规」、摘要 AE 相关系数改为 −0.007（p = 0.528）、「below chance at both thresholds」改为分阈值表述、结论段把「融合块增量为负」更正为「文本块更差」、附录 A.1 与 §5.5 口径统一、删除悬空的「§5.1 describes the repair」、TF-IDF 段落改为显式声明不可比、Beneish 阈值措辞由「literal/conventional」改为「legacy」并补 DEPI 中性化披露、SHAP 补「模型自身输出单位、与 0–1 分数不可加」说明。
 - 完成证据闭合（Phase 2）：新增 `strict_forward_labels()` 与 `scripts/run_07c_strict_timing.py`，用「公告日必须晚于年报披露日」的严格门槛重算 —— 任一违规 1,965 → 1,543（掉 21.5%）、披露违规 1,337 → 1,040（掉 22.2%），财务块对披露违规的 AUC 由 0.596 升到 0.600 [0.584, 0.619]，结论方向不变。新增 `scripts/run_08_lexicon_control.py`，用 `data/archive_v0.1/` 旧词典在修复后的同一 9,239 行上重算：融合 ρ −0.021 → −0.018、文本 ρ −0.048 → −0.026、可读性完全一致，证明附录里那次符号翻转来自数据修复而非词典。
 - 完成证据补齐（Phase 4）：压缩版摘要按「摘要臃肿」条目收紧 461→419 词、四句新证据改用短版（M-Score 尾部与 overlap 口径下沉到附录 B.3 导语），**正文页数守住 15 页**；新增 `src/reporting/docx_blocks.py` 与 `scripts/patch_manuscript_v04.py`，在正文补 4 句（BSE 覆盖 202 家 / 408 行 = 4.4%、M-Score 尾部 −387.1～9,182.9 与 33 行 |M|>20、16 格配对增量、重叠口径 |A∩B|/|A|），在附录新建 B.3 与三张表（B4 配对增量 16 行 / B5 样本流失 5 步 10,172→9,239 / B6 四类标签定义与计数）。

@@ -44,27 +44,29 @@
 
 **核心结论 · Headline results**（出处 · source：[experiment_summary.md](outputs/reports/experiment_summary.md)）：
 
-有效样本 n = **8,140** firm-year（3,265 家公司，2021–2023）。Spearman ρ = if_finance **0.1357**、if_text −0.0293、
-if_fused 0.1034、ae_fused 0.0092（p=0.409）；top-10% 富集率 = if_finance **1.2172**（样本校准口径 1.8673）、if_fused 1.1977（1.8428）；
-SHAP 组贡献 财务 65.4% / 文本 34.6%。即：财务特征弱但显著，文本特征无增量，自编码器的稳健性未复现；
-换用姚加权等 (2021) 全量词典后（词元命中密度为旧引导版的 8.3 倍）结论不变。
+有效样本 n = **9,239** firm-year（3,488 家公司，2021–2023）。Spearman ρ = if_finance **−0.021**（p = 0.040）、
+if_text −0.026（p = 0.013）、if_fused −0.018（p = 0.092）、ae_fused −0.007（p = 0.528）；
+top-10% 富集率 = if_finance **2.45**（legacy 口径 1.69）、if_fused 2.10（1.56）、if_text 0.91、ae_fused 1.96（1.57）；
+SHAP 组贡献 财务 66.2% / 文本 33.8%（按特征平均则 11.0% vs 11.3%）。即：财务特征与 Beneish 式排序微弱**反向**，
+文本特征几乎不相关、且单独使用时显著更差，自编码器的稳健性未复现（融合 ρ 由 +0.103 变为 −0.018，经复算系数据修复而非换词典所致）。
 
-**外部检验 · External validation**（论文 §5.7，出处 · source：[event_branch_results.md](outputs/branches/event_branch_results.md)）：
-以 CSMAR 非标审计意见（188 条 = 2.31%）为真实结果，财务单独排序 **AUC 0.640**、前 10% 队列富集 **2.18 倍**；
-Beneish 代理对同一结果 AUC 仅 **0.405**（低于随机），说明第一版的代理基准不只是噪声，方向也相反。
-按公司分组的交叉验证中，文本块对四类真实事件的 AUC 增量全部为正（+0.007 ~ +0.026，5/8 组合区间不含 0），
-但文本单独在所有标签上都弱于财务单独 —— 诚实的表述是"融合有小而一致的互补增量"，不是"文本很强"。
+**外部检验 · External validation**（论文 §5.6，出处 · source：[event_ranking_metrics.csv](outputs/tables/event_ranking_metrics.csv)）：
+以 CSMAR 非标审计意见（204 条 = 2.21%）为真实结果，财务单独排序 **AUC 0.802**、前 10% 队列富集 **4.95 倍**；
+Beneish 代理对同一结果 AUC 仅 **0.242**（低于随机），说明第一版的代理基准不只是噪声，方向也相反。
+按公司分组的交叉验证中，融合块相对财务块的 AUC 点估计 +0.002 ~ +0.012、**8 个组合无一区间排除 0**；
+而文本块单独使用在全部 16 个格子上显著更差（−0.068 ~ −0.248）。诚实的表述是"融合有小而一致的互补增量但不可区分于零"，
+不是"文本很强"，也不是"文本让结果变差"。
 
-Valid sample n = **8,140** firm-years (3,265 firms, 2021–2023). Spearman ρ = if_finance **0.1357**, if_text −0.0293,
-if_fused 0.1034, ae_fused 0.0092 (p = 0.409); top-10% enrichment = if_finance **1.2172** (recalibrated 1.8673), if_fused 1.1977 (1.8428);
-SHAP group contribution finance 65.4% / text 34.6%. In short: the financial signal is weak but significant, text features add nothing,
-the autoencoder's robustness does not replicate, and replacing the lexicon with the full Yao et al. (2021) list (8.3x denser matches)
-does not change the conclusion.
+Valid sample n = **9,239** firm-years (3,488 firms, 2021–2023). Spearman ρ = if_finance **−0.021** (p = 0.040), if_text −0.026 (p = 0.013),
+if_fused −0.018 (p = 0.092), ae_fused −0.007 (p = 0.528); top-10% enrichment = if_finance **2.45** (legacy 1.69), if_fused 2.10 (1.56),
+if_text 0.91, ae_fused 1.96 (1.57); SHAP group contribution finance 66.2% / text 33.8% (11.0% vs 11.3% per feature). In short: the financial
+signal ranks weakly *against* the Beneish ordering, text features are almost uncorrelated and significantly worse on their own, and the
+autoencoder's robustness does not replicate (the fused ρ moved from +0.103 to −0.018 because of the data repair, not the lexicon).
 
-Against real modified audit opinions (188 firm-years, 2.31%), the finance-only ranking reaches AUC **0.640** with **2.18x**
-top-10% enrichment, while the Beneish proxy scores **0.405** (below chance); grouped cross-validation gives the text block a
-small but consistently positive AUC increment (+0.007 to +0.026, 5 of 8 intervals excluding zero) even though text-only is
-weaker than finance-only on every label.
+Against real modified audit opinions (204 firm-years, 2.21%), the finance-only ranking reaches AUC **0.802** with **4.95x**
+top-10% enrichment, while the Beneish proxy scores **0.242** (below chance). Grouped cross-validation gives the fused block a
+small positive point estimate (+0.002 to +0.012, no interval excluding zero in 8 of 8), while the text block is significantly
+worse than finance in all 16 cells (−0.068 to −0.248).
 
 ### 1.2 看数据 · See the data
 
@@ -165,8 +167,8 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | 归档 · archive | `data/archive_v0.1/` | 第一版的引导词典、旧文本特征与旧特征表，仅供对比与复现 · first-version lexicons, text features and feature table |
 | 过程 · process | `data/processed/*.csv` | 样本框、下载清单、审计、QC、下载与修复日志 · frame, checklist, audit, QC and logs | `run_01`/`04`/`08`/`09`/`10` |
 
-> 中间表与特征表行数不同是正常的：10,172 是全部 firm-year，8,140 是 9 个特征 + M-Score 全部齐全的子集——论文报的是后者。
-> The row counts differ by design: 10,172 is every firm-year; 8,140 is the subset with all 9 features plus M-Score present. The paper reports the latter.
+> 中间表与特征表行数不同是正常的：10,172 是全部 firm-year，9,239 是 9 个特征 + M-Score 全部齐全的子集（流失链 10,172 → 9,414 → 9,413 → 9,239，见交付件附录表 B5）——论文报的是后者。
+> The row counts differ by design: 10,172 is every firm-year; 9,239 is the subset with all 9 features plus M-Score present (attrition chain 10,172 → 9,414 → 9,413 → 9,239, Table B5 of the deliverable). The paper reports the latter.
 
 ---
 
@@ -211,7 +213,7 @@ Organised as raw download → standardised intermediate → modelling feature ta
 | `positive_result_branches.md` | 换真实结果变量的七条路线 | t+1 问询函首选、非标审计意见兜底 |
 | `branch_component_correlations.csv` | Beneish 八分量探针 | 文本对任一分量 \|ρ\| ≤ 0.064，"基准太粗"被排除 |
 | `branch2_inquiry_crawler_spec.md` | 问询函自建爬虫 | 深交所最干净，沪市靠巨潮补，4.5–5 人日 |
-| `event_branch_results.md` | 真实监管事件（已升格为 §5.7） | 财务 AUC 0.640、富集 2.18×；Beneish 仅 0.405 |
+| `event_branch_results.md` | 真实监管事件（已升格为 §5.6） | 财务 AUC 0.802、富集 4.95×；Beneish 仅 0.242 |
 
 ### 4.7 `outputs/archive_v0.1/` 第一版结果 · First-version results
 

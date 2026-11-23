@@ -22,7 +22,8 @@ Group 12A2《Introduction to FinTech》课程论文（Option 2：Research Manusc
 
 ## 仓库内容
 
-- **定稿**：`outputs/manuscript/`（`Group12A2_Final_EN` / `_CN` 的 docx 与 pdf，英文 15 页 / 中文 9 页；`source/` 是不含表格的母版）
+- **定稿（唯一在维护）**：[`outputs/manuscript/Group12A2_Final_EN_v0.3.docx`](outputs/manuscript/Group12A2_Final_EN_v0.3.docx) + [`.pdf`](outputs/manuscript/Group12A2_Final_EN_v0.3.pdf)——15 页正文 + 7 页附录（22 页），数字与 `outputs/tables/` 同源；修订说明见 [`docs/revision/v0.3_consistency_revision.md`](docs/revision/v0.3_consistency_revision.md)
+- **历史稿（不再维护）**：`Group12A2_Final_EN.docx` / `_CN.docx` 的 docx 与 11-11 版 PDF，口径为旧 v0.2（8,140 行）
 - **结果汇总工作簿**：`outputs/Group12A2_Results_Summary.xlsx`（中文）与 [`outputs/Group12A2_Results_Summary_EN.xlsx`](outputs/Group12A2_Results_Summary_EN.xlsx)（英文）——各 7 张表 + 6 张原生 Excel 图表，数字与论文 §5 同源，由 `scripts/build_results_excel.py --lang cn|en` 生成
 - **演示稿**：`outputs/slides/`（`Group12A2_Deck.pptx` / `.pdf`，12 页）
 - **当前结果（第二版）**：`outputs/tables/`、`outputs/figures/`、`outputs/reports/`
@@ -31,7 +32,7 @@ Group 12A2《Introduction to FinTech》课程论文（Option 2：Research Manusc
 - **数据源**：`data/raw/`（巨潮年报 PDF、CSMAR 三表、CSMAR 事件表，不入库）
 - **源码**：`src/`（数据接入、特征工程、模型、评估、报告）
 - **编排脚本**：`scripts/`（`run_00`–`run_14` 分阶段入口 + `run_99_full_pipeline.py` 一键流程 + `build_section5.py` / `build_slides.py` / `build_results_excel.py` 组装）
-- **测试**：`tests/`（126 个 pytest 用例）
+- **测试**：`tests/`（172 个 pytest 用例，含导入图与文档补丁测试）
 - **课程材料**：`course_materials/`（评分要求、原始 Univer 文档、版权声明）
 
 ## 复现
