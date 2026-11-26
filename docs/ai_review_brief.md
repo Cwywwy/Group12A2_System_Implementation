@@ -154,7 +154,7 @@ outputs/manuscript/Group12A2_Final_EN_v0.5.docx
 
 ```powershell
 # 环境：Python 3.12.14，仓库根目录下的 .venv
-.\.venv\Scripts\python.exe -m pytest -q            # 期望 203 passed
+.\.venv\Scripts\python.exe -m pytest -q            # 期望 208 passed
 
 # 全链路（需要 data/ 与 41 GB 原始数据，仓库不含）
 .\.venv\Scripts\python.exe scripts\run_01_sample.py
@@ -170,6 +170,24 @@ outputs/manuscript/Group12A2_Final_EN_v0.5.docx
 ```
 
 注意：`data/` 与 `STK_*` 在 `.gitignore` 中（授权数据，约 41 GB），所以**从 GitHub 克隆后无法直接重跑**；能跑的是测试与核验脚本中对已提交表格的部分。
+
+**想真正动手而不是只读结论时，用这份 1.3 MB 的汇总表**（`outputs/tables/audit_bundle.csv`，16,408 行 × 11 列：公司代码、财年、四个排序分数、Beneish M 值、四个结局标签），它不含任何原始供应商数据，但足以复算 §2 与 §7 的全部统计量：
+
+```python
+import pandas as pd
+from scipy.stats import spearmanr
+from sklearn.metrics import roc_auc_score
+
+b = pd.read_csv("outputs/tables/audit_bundle.csv", dtype={"symbol": str})
+print(roc_auc_score(b["mod_opinion"], b["if_finance"]))              # 0.786918
+print(spearmanr(b["if_finance"], b["m_score"], nan_policy="omit").statistic)  # -0.033166
+print(roc_auc_score(b["mod_opinion"], b["m_score"]))                 # 0.263380
+v = b[b["fiscal_year"].isin([2021, 2022, 2023])]                     # 违规标签的完整窗口
+print(len(v))                                                        # 9239
+print(roc_auc_score(v["violation_disclosure_t1"], v["if_finance"]))  # 0.597944
+```
+
+`tests/test_audit_bundle.py` 会验证这张表本身能复现 ρ 与 AUC（误差 1e-6 以内），所以它不是「摘要」，是可计算的数据。分数保留 10 位小数——保留 6 位会引入并列，把自编码器的 AUC 从 0.696311 挪到 0.696423，这类细节会让人误以为数字对不上。
 
 ---
 
@@ -217,13 +235,13 @@ outputs/manuscript/Group12A2_Final_EN_v0.5.docx
 - `outputs/Group12A2_Results_Summary.xlsx`（中文，6 表 + 6 图）/ `_EN.xlsx`
 - `outputs/reports/audit_2026-11-26.md`（108 项核验）
 
-**结果表**：`outputs/tables/` 下 `anomaly_scores.csv`、`model_metrics.csv`、`event_ranking_metrics.csv`、`event_supervised_metrics.csv`、`topk_metrics.csv`、`ranking_overlap.csv`、`shap_global.csv`、`shap_group_contributions.csv`、`shap_local_top1.csv`、`audit_intervals.json`
+**结果表**：`outputs/tables/` 下 `audit_bundle.csv`（复审用汇总，1.3 MB，无需原始数据即可复算）、`anomaly_scores.csv`、`model_metrics.csv`、`event_ranking_metrics.csv`、`event_supervised_metrics.csv`、`topk_metrics.csv`、`ranking_overlap.csv`、`shap_global.csv`、`shap_group_contributions.csv`、`shap_local_top1.csv`、`audit_intervals.json`
 
 **图表源**：`scripts/build_report_figures.py` → `outputs/figures/manuscript/figure_4_1_pipeline(_cn).png`、`figure_5_1_sample.png`、`figure_5_2_spearman.png`、`figure_5_3_enrichment.png`、`figure_5_7_year_diagnostics.png`、`figure_5_5_external_auc.png`
 
 **正文生成**：`src/reporting/manuscript_v04_text.py`（§3/§4）、`manuscript_v04_section5.py`（§5、摘要、结论）、`manuscript_v04_appendix.py`（附录 A1、B1–B6）、`references_apa.py`（参考文献）
 
-**关键脚本**：`scripts/run_17_audit_results.py`（独立核验）、`scripts/run_00_coverage_gate.py`（覆盖率闸门）、`scripts/run_07b_event_models.py`（含标签闸门）、`scripts/patch_section5_v06.py`（稿件装配）
+**关键脚本**：`scripts/run_17_audit_results.py`（独立核验）、`scripts/run_18_export_audit_bundle.py`（导出复审汇总表）、`scripts/run_00_coverage_gate.py`（覆盖率闸门）、`scripts/run_07b_event_models.py`（含标签闸门）、`scripts/patch_section5_v06.py`（稿件装配）
 
 **测试**：`tests/` 共 203 项，含 `test_cninfo_client.py`（18）、`test_event_label_window.py`（5）、`test_references_apa.py`（12）、`test_patch_manuscript_v05.py`（5）、`test_build_results_excel.py`（14）
 
