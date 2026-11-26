@@ -181,6 +181,20 @@ def _fix_appendix_captions(document, numbers: dict) -> None:
             _set_text(paragraph, updated)
 
 
+def _fix_byline(document) -> None:
+    """Give the author line one separator style; the source mixed 、 with full-width brackets."""
+    for paragraph in document.paragraphs[:3]:
+        if paragraph.text.startswith("Submitted by:"):
+            _set_text(
+                paragraph,
+                "Submitted by: Jinyu Wang (\u6c6a\u8fdb\u5b87, MC644879); "
+                "Wenyuan Chen (\u9648\u6587\u8fdc, MC644700); "
+                "Mingxuan Wu (\u5434\u660e\u8f69, MC637835); "
+                "Kolawole Sunday O. (MC650023)",
+            )
+            return
+
+
 def _appendix_grids(numbers: dict) -> dict[int, list[list[str]]]:
     """Rebuild the appendix tables whose counts depend on the sample window."""
     features = pd.read_csv(DATA_PROCESSED / "feature_table.csv", dtype={"symbol": str})
@@ -255,6 +269,7 @@ def main() -> int:
     _apply_tables(document, grids)
     _fix_appendix_captions(document, numbers)
     _fix_intro_numbers(document)
+    _fix_byline(document)
     _insert_pipeline_figure(document)
     _set_text(document.paragraphs[75], conclusion(numbers))
     document.save(TARGET)
