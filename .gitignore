@@ -52,3 +52,7 @@ outputs/.tmp/
 
 # one-off scripts live in scripts/archive/
 outputs/.tmp_*.py
+
+# Working scratch (dumps, probes, rendered pages)
+outputs/work/
+*.md.bak
