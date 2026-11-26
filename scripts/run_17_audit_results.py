@@ -19,6 +19,7 @@ Revision History
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -441,13 +442,51 @@ def check_supervised(scores: pd.DataFrame, events: pd.DataFrame, frame: pd.DataF
 # --------------------------------------------------------------------------- #
 # D. Manuscript tables against the recomputed tables
 # --------------------------------------------------------------------------- #
+def _cell(text: str) -> float | None:
+    """Parse a table cell into a float, or None for a dash or empty cell."""
+    value = text.strip().replace("\u2212", "-").replace(",", "").replace("%", "")
+    if value in {"", "-", "–", "—", "not applicable"}:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+def _numbers_in(text: str) -> set[float]:
+    """Every numeric token in a block of text, rounded to four decimals."""
+    found = set()
+    for token in re.findall(r"\d[\d,]*(?:\.\d+)?", text):
+        try:
+            found.add(round(float(token.replace(",", "")), 4))
+        except ValueError:
+            continue
+    return found
+
+
 def check_manuscript() -> None:
     from docx import Document
 
-    path = PROJECT_ROOT / "outputs" / "manuscript" / "Group12A2_Final_EN_v0.5.docx"
-    document = Document(str(path))
-    table = document.tables[0]
-    rows = [[cell.text.strip() for cell in row.cells] for row in table.rows]
+    folder = PROJECT_ROOT / "outputs" / "manuscript"
+    document = Document(str(folder / "Group12A2_Final_EN_v0.5.docx"))
+    ranking = pd.read_csv(TABLES / "event_ranking_metrics.csv")
+    supervised = pd.read_csv(TABLES / "event_supervised_metrics.csv")
+    metrics = pd.read_csv(TABLES / "model_metrics.csv")
+    topk = pd.read_csv(TABLES / "topk_metrics.csv")
+    events = pd.read_csv(DATA_PROCESSED / "event_table.csv")
+    frame = pd.read_csv(DATA_PROCESSED / "feature_table.csv")
+    scores = pd.read_csv(TABLES / "anomaly_scores.csv")
+
+    def grid(index: int) -> list[list[str]]:
+        return [[cell.text.strip() for cell in row.cells] for row in document.tables[index].rows]
+
+    def expect(section: str, label: str, shown: float | None, value: float, tolerance: float = 6e-4) -> None:
+        ok = shown is not None and abs(shown - value) <= tolerance
+        record(section, label, f"{shown}", f"{value:.6f}", "PASS" if ok else "FAIL")
+
+    # Table 5.1: the four correlations and their p-values, already checked above,
+    # now compared against the delivered table itself.
+    rows = [[cell.replace("\u2212", "-") for cell in row] for row in grid(0)]
     expected = [
         ["Model", "Spearman rho", "p-value"],
         ["Finance-only IF", "-0.033", "< 0.001"],
@@ -455,10 +494,199 @@ def check_manuscript() -> None:
         ["Fused IF", "-0.019", "0.014"],
         ["Fused autoencoder", "-0.026", "0.001"],
     ]
-    normalised = [[cell.replace("\u2212", "-") for cell in row] for row in rows]
-    record("D. manuscript", "Table 5.1 cells", normalised == expected, True,
-           "PASS" if normalised == expected else "FAIL",
-           "" if normalised == expected else f"first row {normalised[0]} vs {expected[0]}")
+    record("D. manuscript", "Table 5.1 cells", rows == expected, True,
+           "PASS" if rows == expected else "FAIL",
+           "" if rows == expected else f"first row {rows[1]} vs {expected[1]}")
+
+    # Table 5.2: AUCs and lifts against both real outcomes, row order fixed.
+    lookup = {(row["label"], row["model"]): row for _, row in ranking.iterrows()}
+    panel52 = grid(1)
+    for offset, (model, short) in enumerate(
+        (
+            ("finance-only IF", "finance-only"),
+            ("text-only IF", "text-only"),
+            ("fused IF", "fused"),
+            ("fused AE", "autoencoder"),
+            ("Beneish M-Score", "Beneish"),
+        ),
+        start=1,
+    ):
+        row = panel52[offset]
+        for column, label in ((1, "mod_opinion"), (2, "violation_disclosure_t1")):
+            expect(
+                "D. manuscript",
+                f"Table 5.2 {short} AUC {label}",
+                _cell(row[column]),
+                float(lookup[(label, model)]["auc"]),
+            )
+        expect(
+            "D. manuscript",
+            f"Table 5.2 {short} lift opinion",
+            _cell(row[3]),
+            float(lookup[("mod_opinion", model)]["lift_10pct"]),
+            6e-3,
+        )
+
+    # Table 5.3: supervised out-of-fold AUCs and the paired deltas, row order fixed.
+    panel53 = grid(2)
+    for offset, feature_set, classifier in (
+        (1, "finance", "logit"),
+        (2, "finance", "hgb"),
+        (3, "text", "logit"),
+        (4, "text", "hgb"),
+        (5, "fused", "logit"),
+        (6, "fused", "hgb"),
+    ):
+        row = panel53[offset]
+        key = supervised[
+            (supervised["label"] == "mod_opinion")
+            & (supervised["model"] == classifier)
+            & (supervised["feature_set"] == feature_set)
+        ]
+        if key.empty:
+            continue
+        expect(
+            "D. manuscript",
+            f"Table 5.3 {feature_set}/{classifier} AUC",
+            _cell(row[2]),
+            float(key.iloc[0]["oof_auc"]),
+        )
+        if feature_set == "fused":
+            reference = supervised[
+                (supervised["label"] == "mod_opinion")
+                & (supervised["model"] == classifier)
+                & (supervised["feature_set"] == "finance")
+            ]
+            delta = float(key.iloc[0]["oof_auc"]) - float(reference.iloc[0]["oof_auc"])
+            expect(
+                "D. manuscript",
+                f"Table 5.3 {feature_set}/{classifier} delta",
+                _cell(row[3]),
+                delta,
+            )
+
+    # Table A.1: the five-year row must equal the current run.
+    current = grid(3)[1]
+    expect("D. manuscript", "Table A.1 row n", _cell(current[2]), float(len(scores)), 0.5)
+    expect(
+        "D. manuscript",
+        "Table A.1 row events",
+        _cell(current[3]),
+        float(events["mod_opinion"].sum()),
+        0.5,
+    )
+    expect(
+        "D. manuscript",
+        "Table A.1 row finance AUC",
+        _cell(current[4]),
+        float(lookup[("mod_opinion", "finance-only IF")]["auc"]),
+    )
+    expect(
+        "D. manuscript",
+        "Table A.1 row Beneish AUC",
+        _cell(current[5]),
+        float(lookup[("mod_opinion", "Beneish M-Score")]["auc"]),
+    )
+
+    # Table B.1: descriptive statistics over the frame.
+    panel_b1 = grid(4)
+    for offset, feature, column, statistic in (
+        (1, "roa", 2, "mean"),
+        (2, "leverage", 2, "mean"),
+        (1, "roa", 3, "std"),
+    ):
+        expect(
+            "D. manuscript",
+            f"Table B.1 {feature} {statistic}",
+            _cell(panel_b1[offset][column]),
+            float(getattr(frame[feature], statistic)()),
+        )
+
+    # Table B.2: recalibrated enrichment at the review threshold, rows in model order.
+    panel_b2 = grid(5)
+    for offset, model, short in (
+        (2, "if_finance", "finance"),
+        (5, "if_text", "text"),
+        (8, "if_fused", "fused"),
+        (11, "ae_fused", "autoencoder"),
+    ):
+        match = topk[
+            (topk["model"] == model) & (topk["k"] == 0.1) & (topk["benchmark"] == "calibrated")
+        ]
+        if match.empty:
+            continue
+        expect(
+            "D. manuscript",
+            f"Table B.2 {short} enrichment",
+            _cell(panel_b2[offset][5]),
+            float(match.iloc[0]["enrichment"]),
+        )
+
+    # Table B.5: the attrition chain, including the closing summary row.
+    retained = [int(value) for value in (_cell(row[3]) for row in grid(8)[1:]) if value is not None]
+    record(
+        "D. manuscript",
+        "Table B.5 retained sequence",
+        retained,
+        [17600, 16641, 16640, 16408, 16408],
+        "PASS" if retained == [17600, 16641, 16640, 16408, 16408] else "FAIL",
+    )
+    firms = int(scores["symbol"].nunique())
+    record(
+        "D. manuscript",
+        "Table B.5 analysis firms",
+        firms,
+        3773,
+        "PASS" if firms == 3773 else "FAIL",
+    )
+
+    # Table B.6: event counts and their base rates, rows in label order.
+    settled = events[
+        events["fiscal_year"].isin(complete_t1_years(sorted(events["fiscal_year"].unique())))
+    ]
+    panel_b6 = grid(9)
+    for offset, series, denominator in (
+        (1, events["mod_opinion"], len(events)),
+        (2, events["mod_opinion_wide"], len(events)),
+        (3, settled["violation_any_t1"], len(settled)),
+        (4, settled["violation_disclosure_t1"], len(settled)),
+    ):
+        cell = panel_b6[offset][2]
+        expect(
+            "D. manuscript",
+            f"Table B.6 row {offset} count",
+            _cell(cell.split()[0]),
+            float(series.sum()),
+            0.5,
+        )
+        share = 100.0 * float(series.sum()) / denominator
+        expect(
+            "D. manuscript",
+            f"Table B.6 row {offset} share",
+            _cell(cell.split("(")[1].split("%")[0]),
+            share,
+            0.06,
+        )
+
+    # Cross-language integrity: every number in the Chinese manuscript must exist
+    # in the English one, and vice versa, because the Chinese file is a translation.
+    chinese = Document(str(folder / "Group12A2_Final_CN.docx"))
+    english_text = " ".join(
+        [paragraph.text for paragraph in document.paragraphs]
+        + [cell.text for table in document.tables for row in table.rows for cell in row.cells]
+    )
+    chinese_text = " ".join(
+        [paragraph.text for paragraph in chinese.paragraphs]
+        + [cell.text for table in chinese.tables for row in table.rows for cell in row.cells]
+    )
+    english_numbers = _numbers_in(english_text)
+    chinese_numbers = _numbers_in(chinese_text)
+    only_chinese = sorted(chinese_numbers - english_numbers)
+    only_english = sorted(english_numbers - chinese_numbers)
+    record("D. manuscript", "numbers present only in the Chinese file", len(only_chinese), 0,
+           "PASS" if not only_chinese else "FAIL", str(only_chinese[:8]))
+    record("D. manuscript", "numbers present only in the English file", len(only_english), 0,
+           "NOTE", str(only_english[:8]))
 
 
 def write_report() -> int:
