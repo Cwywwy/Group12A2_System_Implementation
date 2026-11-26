@@ -75,6 +75,8 @@ def section5(num: Mapping[str, Any]) -> dict[str, str]:
     opinion_auto = _ranking(num, "mod_opinion", "fused AE")
     violation = _ranking(num, "violation_disclosure_t1", "finance-only IF")
     violation_beneish = _ranking(num, "violation_disclosure_t1", "Beneish M-Score")
+    audit = num["audit"]
+    gate = audit["gate"]
     sup_logit = _supervised(num, "mod_opinion", "logit", "fused")
     sup_logit_fin = _supervised(num, "mod_opinion", "logit", "finance")
     sup_logit_text = _supervised(num, "mod_opinion", "logit", "text")
@@ -230,7 +232,11 @@ def section5(num: Mapping[str, Any]) -> dict[str, str]:
         f"whose t+1 window is settled in the vendor snapshot (October 2026). Later years would "
         f"enter with an incomplete forward window — the observed t+1 violation rate falls from "
         f"about 21% to 13.5% in 2024 and 1.0% in 2025 — so they are excluded rather than reported "
-        f"as a weak result. Modified opinions are rare: "
+        f"as a weak result. The exclusion works against the benchmark rather than for the method: "
+        f"scored across all five years the finance-only ranking falls to "
+        f"{_f(gate['finance-only IF']['ungated'])} while the M-Score rises to "
+        f"{_f(gate['Beneish M-Score']['ungated'])}, so a reader who distrusts the gate should read "
+        f"the gap as narrower, not wider. Modified opinions are rare: "
         f"{num['events']['mod_opinion_count']:,} ({_pct(num['events']['mod_opinion_rate'], 2)}), or "
         f"{num['events']['mod_opinion_wide_count']:,} counting explanatory paragraphs, and the "
         f"annual variation in both event rates is reported in Appendix B.6."
@@ -253,7 +259,12 @@ def section5(num: Mapping[str, Any]) -> dict[str, str]:
         f"likely to carry a modified opinion. Against the forward-looking violation outcome the "
         f"same ordering holds, at a lower level ({_f(violation['auc'])} for the finance-only "
         f"ranking against {_f(violation_beneish['auc'])} for the M-Score), which is what one "
-        f"expects when the outcome depends on enforcement timing as much as on reporting quality."
+        f"expects when the outcome depends on enforcement timing as much as on reporting quality. "
+        f"The intervals resample firm-years independently; because later years of the same firm "
+        f"are correlated, resampling whole firms widens the primary interval from "
+        f"[{_f(audit['row_interval'][0])}, {_f(audit['row_interval'][1])}] to "
+        f"[{_f(audit['cluster_interval'][0])}, {_f(audit['cluster_interval'][1])}] without "
+        f"changing any comparison above."
     )
 
     blocks["f53_caption"] = (

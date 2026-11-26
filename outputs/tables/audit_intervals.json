@@ -1,0 +1,32 @@
+{
+  "row_interval": [
+    0.7624,
+    0.8092
+  ],
+  "cluster_interval": [
+    0.7528,
+    0.8199
+  ],
+  "gate": {
+    "finance-only IF": {
+      "gated": 0.5979,
+      "ungated": 0.5935
+    },
+    "text-only IF": {
+      "gated": 0.4994,
+      "ungated": 0.4953
+    },
+    "fused IF": {
+      "gated": 0.5812,
+      "ungated": 0.5768
+    },
+    "fused AE": {
+      "gated": 0.5611,
+      "ungated": 0.5667
+    },
+    "Beneish M-Score": {
+      "gated": 0.4074,
+      "ungated": 0.4394
+    }
+  }
+}

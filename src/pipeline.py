@@ -86,7 +86,11 @@ def run_pipeline(feature_csv: Path, output_dir: Path | None = None) -> dict:
     tables_dir.mkdir(parents=True, exist_ok=True)
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    df = pd.read_csv(feature_csv)
+    # Read the symbol as text: pandas would otherwise infer 000008 as the integer
+    # 8 and every downstream join would need to zero-pad it back.
+    df = pd.read_csv(feature_csv, dtype={"symbol": str})
+    if "symbol" in df.columns:
+        df["symbol"] = df["symbol"].str.zfill(6)
     id_columns = [c for c in ("symbol", "fiscal_year", "industry_code_d") if c in df.columns]
     work = df.dropna(subset=list(ALL_FEATURES) + ["m_score"]).copy()
     if work.empty:

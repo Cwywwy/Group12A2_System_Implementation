@@ -14,6 +14,10 @@
 - 第 5 部分改由新模块持有文本：新增 `src/reporting/manuscript_v04_section5.py`（`section5()` / `section5_tables()` / `abstract()` / `conclusion()`）与 `src/reporting/manuscript_v04_appendix.py`（A1、B1–B6 全部按当前表格重算），`scripts/patch_section5_v06.py` 负责写入、插表、插图、回填摘要与结论、修正表题与引言数字。§5 正文由 2,742 词压到 1,346 词，全文 8,171 → 6,013 词。
 - 交付件重建：`Group12A2_Final_EN_v0.5.docx` / `.pdf`（**19 页**：正文 11 页 + 附录 8 页，正文含图 4.1 与图 5.1–5.4 共五图）；中文稿由三路并行翻译合并为 `docs/manuscript_chinese_draft.md`，`scripts/assemble_chinese_draft.py` 逐表注入并翻译 111 个标签格，`scripts/run_13_build_chinese_docx.py` 生成 `Group12A2_Final_CN.docx` / `.pdf`（**22 页**，五张图齐全，表格后留 6 磅间距）。流程图另有中文版 `figure_4_1_pipeline_cn.png`（`figure_41_pipeline("cn")`，微软雅黑），中文稿使用该版本。
 - 两张结果工作簿改为全部从 `outputs/tables/` 现算：`scripts/build_results_excel.py` 增 `year_rho()`、`sample_line()`、`rho_line()`、`delta_line()`，删去 v0.1 词典对照表（三年期数字无法在五年面板重算），中文版 6 张表、英文版同构；`tests/test_build_results_excel.py` 同步。
+- 修正 `src/pipeline.py:89` 的证券代码类型缺陷：`pd.read_csv()` 未指定 `dtype`，`000008` 被推断为整数 `8` 写进 `outputs/tables/anomaly_scores.csv`，而下游 26 处各自 `zfill(6)` 补偿。改为 `dtype={"symbol": str}` 并统一补零；重跑 `run_07` / `run_07b` 后分数与全部指标逐位不变。
+- 新增独立核验脚本 `scripts/run_17_audit_results.py`（不复用流水线自身的指标函数）：从 `FIN_Audit.xlsx` 与 `STK_Violation_Main.xlsx` 原始表重算标签、从保存的分数表重算相关系数、AUC、富集、重叠、SHAP 份额，并重跑监督式五折。结果 **62 项检查 0 项失败**，报告写 `outputs/reports/audit_2026-11-26.md`；顺带导出 `outputs/tables/audit_intervals.json`（按公司整群重抽的区间、闸门 gated/ungated 对比）。
+- §5.6 增补两句基于核验的披露：前瞻标签滤除对基准而非对本方法不利（五年全计分时仅财务 0.594、M-Score 0.439）；置信区间按公司-年度独立重抽，按整家公司重抽会把主区间由 [0.762, 0.809] 放宽到 [0.753, 0.820]。
+- 交付件同步重建（英文 19 页、中文 22 页），`CHANGELOG`、`README`、计划书状态一并更新。
 
 ## 2026-11-24
 

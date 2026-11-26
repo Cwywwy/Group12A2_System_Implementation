@@ -1,4 +1,4 @@
-# Group12A2 · 财务披露风险筛查（文本-财务特征融合 + 可解释异常检测）
+﻿# Group12A2 · 财务披露风险筛查（文本-财务特征融合 + 可解释异常检测）
 
 > Screening Financial Disclosure Risk through Textual-Financial Feature Fusion and Explainable Anomaly Detection:
 > Evidence from Chinese A-share Manufacturing Firms, 2021–2023
@@ -17,14 +17,17 @@ Group 12A2《Introduction to FinTech》课程论文（Option 2：Research Manusc
 | 找某个文件在哪 · find a file | [`docs/project_layout.md`](docs/project_layout.md)（项目文件地图：数据源 / 第一版 / 第二版 / 各分支 / 定稿） |
 | 查某个结果或命令 · look up a result or command | [`GUIDE.md`](GUIDE.md)（中英双语查阅指南） |
 | 从零复现 · reproduce | [`docs/reproducibility_guide.md`](docs/reproducibility_guide.md) |
+| 给完全外行讲清这个项目 · explain it to a non-specialist | [`docs/interpretation_report_cn.md`](docs/interpretation_report_cn.md)（简体中文） / [`docs/interpretation_report_en.md`](docs/interpretation_report_en.md)（English）——通俗解读报告，含「方法与模型详解手册」 |
 | 看还差什么 · outstanding work | [`docs/team_handoff.md`](docs/team_handoff.md) |
 | 看改了什么 · change history | [`CHANGELOG.md`](CHANGELOG.md) |
 
 ## 仓库内容
 
-- **定稿（唯一在维护）**：[`outputs/manuscript/Group12A2_Final_EN_v0.3.docx`](outputs/manuscript/Group12A2_Final_EN_v0.3.docx) + [`.pdf`](outputs/manuscript/Group12A2_Final_EN_v0.3.pdf)——15 页正文 + 7 页附录（22 页），数字与 `outputs/tables/` 同源；修订说明见 [`docs/revision/v0.3_consistency_revision.md`](docs/revision/v0.3_consistency_revision.md)
-- **历史稿（不再维护）**：`Group12A2_Final_EN.docx` / `_CN.docx` 的 docx 与 11-11 版 PDF，口径为旧 v0.2（8,140 行）
-- **结果汇总工作簿**：`outputs/Group12A2_Results_Summary.xlsx`（中文）与 [`outputs/Group12A2_Results_Summary_EN.xlsx`](outputs/Group12A2_Results_Summary_EN.xlsx)（英文）——各 7 张表 + 6 张原生 Excel 图表，数字与论文 §5 同源，由 `scripts/build_results_excel.py --lang cn|en` 生成
+- **定稿（唯一在维护）**：[`outputs/manuscript/Group12A2_Final_EN_v0.5.docx`](outputs/manuscript/Group12A2_Final_EN_v0.5.docx) + [`.pdf`](outputs/manuscript/Group12A2_Final_EN_v0.5.pdf)——2021–2025 五年度口径（n = 16,408 / 3,773 家），19 页（正文 11 + 附录 8），五张图、十张表，参考文献 APA 7，数字与 `outputs/tables/` 同源；中文版 [`Group12A2_Final_CN.docx`](outputs/manuscript/Group12A2_Final_CN.docx) / [`.pdf`](outputs/manuscript/Group12A2_Final_CN.pdf)（22 页）
+- **通俗解读报告（外行向）**：[`docs/interpretation_report_cn.md`](docs/interpretation_report_cn.md) 与 [`docs/interpretation_report_en.md`](docs/interpretation_report_en.md)——不假设读者懂会计或机器学习，逐节解释背景、样本、9 个特征、Beneish M-Score、孤立森林、自编码器、SHAP、评估指标与全部结果表，并附术语表与 FAQ
+- **历史稿（不再维护）**：`Group12A2_Final_EN_v0.3` / `_v0.4`（2021–2023 与 2021–2024 口径）、`Group12A2_Final_EN.docx` / `_CN.docx` 的 docx 与 11-11 版 PDF（旧 v0.2，8,140 行）
+- **结果汇总工作簿**：`outputs/Group12A2_Results_Summary.xlsx`（中文）与 [`outputs/Group12A2_Results_Summary_EN.xlsx`](outputs/Group12A2_Results_Summary_EN.xlsx)（英文）——各 6 张表 + 6 张原生 Excel 图表，数字与论文 §5 同源，由 `scripts/build_results_excel.py --lang cn|en` 生成
+- **独立核验报告**：[`outputs/reports/audit_2026-11-26.md`](outputs/reports/audit_2026-11-26.md)——`scripts/run_17_audit_results.py` 从原始 CSMAR 表与保存的分数表重算 62 项，0 失败
 - **演示稿**：`outputs/slides/`（`Group12A2_Deck.pptx` / `.pdf`，12 页）
 - **当前结果（第二版）**：`outputs/tables/`、`outputs/figures/`、`outputs/reports/`
 - **各分支调研**：`outputs/branches/`（换结果变量可行性、Beneish 分量探针、问询函爬虫规格、真实事件检验）
@@ -62,10 +65,13 @@ and Explainable Anomaly Detection — Evidence from Chinese A-share Manufacturin
 
 | Deliverable · English version | Location |
 | --- | --- |
-| Final manuscript (English, 15 pages, Table 5.1–5.6) | [`outputs/manuscript/Group12A2_Final_EN.pdf`](outputs/manuscript/Group12A2_Final_EN.pdf) / [`.docx`](outputs/manuscript/Group12A2_Final_EN.docx) |
-| Final manuscript (Chinese, 9 pages) | [`outputs/manuscript/Group12A2_Final_CN.pdf`](outputs/manuscript/Group12A2_Final_CN.pdf) / [`.docx`](outputs/manuscript/Group12A2_Final_CN.docx) |
-| Results summary workbook (English, 7 sheets + 6 native charts) | [`outputs/Group12A2_Results_Summary_EN.xlsx`](outputs/Group12A2_Results_Summary_EN.xlsx) |
-| Results summary workbook (Chinese, 7 sheets + 6 native charts) | [`outputs/Group12A2_Results_Summary.xlsx`](outputs/Group12A2_Results_Summary.xlsx) |
+| Final manuscript (English, v0.5 — the only maintained version, 2021–2025 panel, 19 pages incl. appendices) | [`outputs/manuscript/Group12A2_Final_EN_v0.5.pdf`](outputs/manuscript/Group12A2_Final_EN_v0.5.pdf) / [`.docx`](outputs/manuscript/Group12A2_Final_EN_v0.5.docx) |
+| Chinese manuscript (v0.5 wording, 22 pages) | [`outputs/manuscript/Group12A2_Final_CN.pdf`](outputs/manuscript/Group12A2_Final_CN.pdf) / [`.docx`](outputs/manuscript/Group12A2_Final_CN.docx) |
+| Independent audit of the experiment data and results (62 checks, 0 failures) | [`outputs/reports/audit_2026-11-26.md`](outputs/reports/audit_2026-11-26.md) |
+| Layperson interpretation report (Chinese, with a methods handbook) | [`docs/interpretation_report_cn.md`](docs/interpretation_report_cn.md) |
+| Layperson interpretation report (English, with a methods handbook) | [`docs/interpretation_report_en.md`](docs/interpretation_report_en.md) |
+| Results summary workbook (English, 6 sheets + 6 native charts) | [`outputs/Group12A2_Results_Summary_EN.xlsx`](outputs/Group12A2_Results_Summary_EN.xlsx) |
+| Results summary workbook (Chinese, 6 sheets + 6 native charts) | [`outputs/Group12A2_Results_Summary.xlsx`](outputs/Group12A2_Results_Summary.xlsx) |
 | Twelve-slide deck | [`outputs/slides/Group12A2_Deck.pdf`](outputs/slides/Group12A2_Deck.pdf) / [`.pptx`](outputs/slides/Group12A2_Deck.pptx) |
 | Bilingual reference guide | [`GUIDE.md`](GUIDE.md) |
 | Reproduction guide | [`docs/reproducibility_guide.md`](docs/reproducibility_guide.md) |

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -415,7 +416,20 @@ def collect_numbers() -> dict:
     num["lexicon_density"] = _load_lexicon_density()
     num["v01"] = _load_v01_metrics()
     num["events"] = _load_event_numbers()
+    num["audit"] = _load_audit_intervals()
     return num
+
+
+def _load_audit_intervals() -> dict:
+    """Return the audit intervals and gate effects, empty dict when unavailable.
+
+    ``scripts/run_17_audit_results.py`` writes the row and firm-cluster intervals
+    and the gated against ungated violation AUCs; the paper quotes them in §5.6.
+    """
+    path = TABLES / "audit_intervals.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _load_lexicon_density() -> dict:
