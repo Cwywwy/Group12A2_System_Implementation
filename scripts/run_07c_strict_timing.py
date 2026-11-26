@@ -30,7 +30,7 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config import TABLES  # noqa: E402
+from src.config import TABLES, complete_t1_years as settled_t1_years  # noqa: E402
 from src.evaluation.timing_eval import (  # noqa: E402
     LABELS,
     build_labelled_frame,
@@ -69,6 +69,7 @@ def main() -> int:
     window = None if args.no_window else args.window_days
 
     frame, _strict = build_labelled_frame(args.events, args.scores, window_days=window)
+    frame = frame[frame["fiscal_year"].isin(settled_t1_years(frame["fiscal_year"].unique()))]
     print(f"[run_07c] merged rows={len(frame):,} firms={frame['symbol'].nunique():,}")
     for label, _description, _loose in LABELS:
         print(

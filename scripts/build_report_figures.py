@@ -311,6 +311,62 @@ def figure_41_pipeline() -> Path:
     return _save(fig, "figure_4_1_pipeline.png")
 
 
+def figure_57_year_diagnostics(scores: pd.DataFrame, events: pd.DataFrame) -> Path:
+    """How the benchmark moves year by year: threshold drift and ranking AUC.
+
+    The legacy Beneish cut-off is calibrated on an older market, so the panel
+    shows where the ninetieth percentile actually falls each year and whether
+    the two rankings keep their ordering once the label is held fixed.
+    """
+    from sklearn.metrics import roc_auc_score
+
+    _style()
+    merged = scores.assign(symbol=scores["symbol"].astype(str).str.zfill(6)).merge(
+        events.assign(symbol=events["symbol"].astype(str).str.zfill(6))[
+            ["symbol", "fiscal_year", "mod_opinion"]
+        ],
+        on=["symbol", "fiscal_year"],
+        how="left",
+    )
+    years = sorted(int(year) for year in merged["fiscal_year"].unique())
+    thresholds, auc_finance, auc_beneish, base_rate = [], [], [], []
+    for year in years:
+        block = merged[merged["fiscal_year"] == year].dropna(subset=["m_score", "if_finance"])
+        label = block["mod_opinion"].fillna(0).astype(bool)
+        thresholds.append(float(block["m_score"].quantile(0.90)))
+        base_rate.append(float(label.mean()) * 100.0)
+        if label.nunique() == 2:
+            auc_finance.append(roc_auc_score(label, block["if_finance"]))
+            auc_beneish.append(roc_auc_score(label, block["m_score"]))
+        else:
+            auc_finance.append(float("nan"))
+            auc_beneish.append(float("nan"))
+
+    fig, (left, right) = plt.subplots(1, 2, figsize=(9.2, 3.1))
+
+    left.plot(years, thresholds, marker="o", color=RED, linewidth=1.6)
+    for year, value in zip(years, thresholds):
+        left.annotate(f"{value:.2f}", (year, value), textcoords="offset points",
+                      xytext=(0, 7), ha="center", fontsize=7.5)
+    left.set_title("Beneish cut-off at the ninetieth percentile")
+    left.set_ylabel("M-Score threshold")
+    left.set_xticks(years)
+    left.set_ylim(min(thresholds) - 0.25, max(thresholds) + 0.25)
+
+    right.plot(years, auc_finance, marker="o", color=BLUE, label="Finance-only IF")
+    right.plot(years, auc_beneish, marker="s", color=RED, label="Beneish M-Score")
+    right.axhline(0.5, color=GREY, linestyle="--", linewidth=0.8)
+    right.text(years[0], 0.515, "chance", fontsize=7, color=GREY)
+    right.set_title("Ranking quality against modified opinions, by year")
+    right.set_ylabel("AUC")
+    right.set_xticks(years)
+    right.set_ylim(0.0, 1.0)
+    right.legend(frameon=False, loc="upper right", fontsize=7.5)
+
+    fig.tight_layout()
+    return _save(fig, "figure_5_7_year_diagnostics.png")
+
+
 def main() -> None:
     scores = pd.read_csv(TABLES / "anomaly_scores.csv")
     counts = scores.groupby("fiscal_year").size().rename("complete")
@@ -325,6 +381,11 @@ def main() -> None:
     print(figure_54(pd.read_csv(TABLES / "shap_group_contributions.csv")))
     print(figure_55(pd.read_csv(TABLES / "event_ranking_metrics.csv")))
     print(figure_56(pd.read_csv(TABLES / "event_supervised_metrics.csv")))
+    print(
+        figure_57_year_diagnostics(
+            scores, pd.read_csv("data/processed/event_table.csv", dtype={"symbol": str})
+        )
+    )
 
 
 if __name__ == "__main__":

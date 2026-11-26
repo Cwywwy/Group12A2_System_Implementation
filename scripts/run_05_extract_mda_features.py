@@ -22,6 +22,7 @@ Revision History
 import argparse
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import pandas as pd
@@ -33,6 +34,17 @@ from src.config import CNINFO_RAW, DATA_INTERIM, SAMPLE_YEARS  # noqa: E402
 from src.features.textual import extract_mda_features  # noqa: E402
 
 CHECKPOINT_EVERY = 25
+
+
+def _extract_one(pdf_path: str) -> dict:
+    """Worker: return one feature row for a single annual-report PDF."""
+    pdf = Path(pdf_path)
+    result = extract_mda_features(pdf)
+    row = {"symbol": pdf.name.split("_")[0], "status": result.get("status", "error")}
+    features = result.get("features")
+    if isinstance(features, dict):
+        row.update(features)
+    return row
 
 
 def _write_table(rows: list[dict], out_path: Path) -> None:
@@ -47,6 +59,8 @@ def main() -> None:
     parser.add_argument("--year", type=int, default=None)
     parser.add_argument("--start", type=str, default=None)
     parser.add_argument("--end", type=str, default=None)
+    parser.add_argument("--workers", type=int, default=1,
+                        help="parallel extraction processes; 1 keeps the serial path")
     args = parser.parse_args()
 
     years = [args.year] if args.year else SAMPLE_YEARS
@@ -70,24 +84,30 @@ def main() -> None:
         if args.end:
             pdfs = [p for p in pdfs if p.name <= args.end]
 
-        rows = []
+        rows = [done[pdf.name.split("_")[0]] for pdf in pdfs if pdf.name.split("_")[0] in done]
+        pending = [pdf for pdf in pdfs if pdf.name.split("_")[0] not in done]
         started = time.time()
-        for i, pdf in enumerate(pdfs, 1):
-            symbol = pdf.name.split("_")[0]
-            if symbol in done:
-                rows.append(done[symbol])
-                continue
-            result = extract_mda_features(pdf)
-            row = {"symbol": symbol, "status": result.get("status", "error")}
-            features = result.get("features")
-            if isinstance(features, dict):
-                row.update(features)
-            rows.append(row)
-            print(f"[run_05] {year} {i}/{len(pdfs)} {symbol} -> {row['status']} "
-                  f"({row.get('n_tokens', 0)} tokens)", flush=True)
-            if i % CHECKPOINT_EVERY == 0:
-                _write_table(rows, out_path)
-                print(f"[run_05] checkpoint {i} written", flush=True)
+        print(f"[run_05] {year}: {len(pending)} to extract, {len(rows)} carried over, "
+              f"{args.workers} workers", flush=True)
+
+        if args.workers > 1 and pending:
+            with ProcessPoolExecutor(max_workers=args.workers) as pool:
+                for done_count, row in enumerate(pool.map(_extract_one, map(str, pending), chunksize=4), 1):
+                    rows.append(row)
+                    print(f"[run_05] {year} {done_count}/{len(pending)} {row['symbol']} -> "
+                          f"{row['status']} ({row.get('n_tokens', 0)} tokens)", flush=True)
+                    if done_count % CHECKPOINT_EVERY == 0:
+                        _write_table(rows, out_path)
+                        print(f"[run_05] checkpoint {done_count} written", flush=True)
+        else:
+            for i, pdf in enumerate(pending, 1):
+                row = _extract_one(str(pdf))
+                rows.append(row)
+                print(f"[run_05] {year} {i}/{len(pending)} {row['symbol']} -> {row['status']} "
+                      f"({row.get('n_tokens', 0)} tokens)", flush=True)
+                if i % CHECKPOINT_EVERY == 0:
+                    _write_table(rows, out_path)
+                    print(f"[run_05] checkpoint {i} written", flush=True)
 
         _write_table(rows, out_path)
         table = pd.DataFrame(rows)

@@ -284,6 +284,17 @@ def _event_delta(num: dict, label: str, model: str, feature_set: str) -> dict:
     )
 
 
+def _settled_years(years) -> list[int]:
+    """Fiscal years whose t+1 violation window is settled (see src.config)."""
+    import sys
+
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from src.config import complete_t1_years
+
+    return complete_t1_years(years)
+
+
 def collect_numbers() -> dict:
     """Read every number the section needs straight from the pipeline tables."""
     features = pd.read_csv(PROCESSED / "feature_table.csv", dtype={"symbol": str})
@@ -306,6 +317,8 @@ def collect_numbers() -> dict:
     num["n_firms"] = scores["symbol"].nunique()
     by_year = scores.groupby("fiscal_year").size()
     num["by_year"] = {int(y): int(c) for y, c in by_year.items()}
+    num["violation_years"] = _settled_years(num["by_year"])
+    num["violation_n"] = sum(num["by_year"].get(year, 0) for year in num["violation_years"])
     num["share"] = num["n"] / num["frame_years"]
 
     status = features["text_status"].fillna("missing").value_counts()

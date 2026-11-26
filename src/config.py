@@ -52,6 +52,32 @@ MIN_SUBINDUSTRY_YEAR_CELL = 20                    # below this, standardise on t
 BENEISH_THRESHOLD = -1.78                         # legacy benchmark flag only, never a training input
 BENEISH_TOP_QUANTILE = 0.10                       # recalibrated benchmark: top-decile M-Score
 
+# ---- Forward-label completeness ----
+# Latest announcement covered by the CSMAR violation export
+# (data/raw/csmar_events/STK_Violation_Main.xlsx, downloaded 2026-11-11). A t+1
+# label is only treated as complete when this date postdates the end of the t+1
+# window by a full year, because the vendor files announcements with a lag: the
+# closing year of a fresher window still shows about 40% fewer announcements
+# than a settled year. With this snapshot the complete window ends at FY2023.
+VIOLATION_SNAPSHOT = (2026, 10, 20)
+
+
+def complete_t1_years(years) -> list[int]:
+    """Return the fiscal years whose t+1 violation window is settled.
+
+    A window that merely ended before the snapshot is not enough: the closing
+    year of a fresher window still shows about 40% fewer announcements than a
+    settled year, so the snapshot must postdate the window end by a full year.
+    """
+    from datetime import date, timedelta
+
+    cutoff = date(*VIOLATION_SNAPSHOT)
+    settled = []
+    for year in sorted({int(value) for value in years}):
+        if date(year + 1, 12, 31) + timedelta(days=365) <= cutoff:
+            settled.append(int(year))
+    return settled
+
 # ---- Feature definitions (formulae fixed in docs/feature_dictionary.md) ----
 FINANCE_FEATURES = (
     "roa",

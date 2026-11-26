@@ -19,35 +19,35 @@ counted in the diagnostics table: 1 rows.
 
 | Label | Score | AUC [95% CI] | Lift top-10% [95% CI] |
 | --- | --- | --- | --- |
-| mod_opinion | finance-only IF | 0.802 [0.774, 0.833] | 4.95 [4.29, 5.57] |
-| mod_opinion | text-only IF | 0.520 [0.478, 0.557] | 0.98 [0.53, 1.36] |
-| mod_opinion | fused IF | 0.769 [0.734, 0.801] | 4.56 [3.92, 5.24] |
-| mod_opinion | fused AE | 0.690 [0.651, 0.735] | 3.43 [2.85, 4.08] |
+| mod_opinion | finance-only IF | 0.805 [0.778, 0.836] | 5.00 [4.27, 5.60] |
+| mod_opinion | text-only IF | 0.513 [0.471, 0.551] | 0.98 [0.57, 1.39] |
+| mod_opinion | fused IF | 0.767 [0.733, 0.799] | 4.56 [3.91, 5.17] |
+| mod_opinion | fused AE | 0.686 [0.648, 0.729] | 3.19 [2.56, 3.88] |
 | mod_opinion | Beneish M-Score | 0.242 [0.200, 0.281] | 0.64 [0.35, 0.96] |
-| mod_opinion_wide | finance-only IF | 0.781 [0.753, 0.810] | 4.62 [4.11, 5.10] |
-| mod_opinion_wide | text-only IF | 0.530 [0.496, 0.560] | 1.15 [0.79, 1.47] |
-| mod_opinion_wide | fused IF | 0.759 [0.730, 0.785] | 4.25 [3.78, 4.74] |
-| mod_opinion_wide | fused AE | 0.678 [0.646, 0.710] | 3.46 [2.95, 3.88] |
+| mod_opinion_wide | finance-only IF | 0.785 [0.757, 0.812] | 4.68 [4.12, 5.17] |
+| mod_opinion_wide | text-only IF | 0.524 [0.492, 0.554] | 1.10 [0.76, 1.42] |
+| mod_opinion_wide | fused IF | 0.757 [0.729, 0.783] | 4.39 [3.94, 4.90] |
+| mod_opinion_wide | fused AE | 0.677 [0.644, 0.707] | 3.27 [2.77, 3.72] |
 | mod_opinion_wide | Beneish M-Score | 0.276 [0.247, 0.312] | 0.73 [0.48, 1.01] |
-| violation_any_t1_strict | finance-only IF | 0.581 [0.564, 0.595] | 1.87 [1.71, 2.03] |
-| violation_any_t1_strict | text-only IF | 0.504 [0.489, 0.518] | 0.93 [0.80, 1.06] |
-| violation_any_t1_strict | fused IF | 0.570 [0.553, 0.585] | 1.74 [1.58, 1.90] |
-| violation_any_t1_strict | fused AE | 0.554 [0.538, 0.569] | 1.57 [1.40, 1.71] |
+| violation_any_t1_strict | finance-only IF | 0.583 [0.567, 0.597] | 1.87 [1.71, 2.04] |
+| violation_any_t1_strict | text-only IF | 0.501 [0.485, 0.515] | 0.92 [0.80, 1.06] |
+| violation_any_t1_strict | fused IF | 0.570 [0.554, 0.586] | 1.74 [1.59, 1.91] |
+| violation_any_t1_strict | fused AE | 0.556 [0.540, 0.570] | 1.64 [1.47, 1.77] |
 | violation_any_t1_strict | Beneish M-Score | 0.432 [0.414, 0.447] | 0.93 [0.79, 1.07] |
-| violation_disclosure_t1_strict | finance-only IF | 0.600 [0.584, 0.619] | 2.12 [1.90, 2.34] |
-| violation_disclosure_t1_strict | text-only IF | 0.512 [0.492, 0.527] | 0.97 [0.79, 1.12] |
-| violation_disclosure_t1_strict | fused IF | 0.590 [0.574, 0.611] | 1.98 [1.77, 2.17] |
-| violation_disclosure_t1_strict | fused AE | 0.564 [0.546, 0.584] | 1.69 [1.49, 1.89] |
+| violation_disclosure_t1_strict | finance-only IF | 0.603 [0.586, 0.622] | 2.12 [1.90, 2.36] |
+| violation_disclosure_t1_strict | text-only IF | 0.508 [0.488, 0.523] | 0.96 [0.79, 1.14] |
+| violation_disclosure_t1_strict | fused IF | 0.590 [0.572, 0.609] | 1.97 [1.79, 2.19] |
+| violation_disclosure_t1_strict | fused AE | 0.567 [0.549, 0.588] | 1.75 [1.55, 1.97] |
 | violation_disclosure_t1_strict | Beneish M-Score | 0.413 [0.394, 0.436] | 0.90 [0.74, 1.07] |
-| violation_any_t1_loose | finance-only IF | 0.570 [0.555, 0.584] | 1.70 [1.58, 1.84] |
-| violation_any_t1_loose | text-only IF | 0.497 [0.483, 0.510] | 0.91 [0.79, 1.01] |
-| violation_any_t1_loose | fused IF | 0.557 [0.542, 0.572] | 1.60 [1.47, 1.73] |
-| violation_any_t1_loose | fused AE | 0.544 [0.529, 0.559] | 1.42 [1.28, 1.55] |
+| violation_any_t1_loose | finance-only IF | 0.573 [0.557, 0.586] | 1.71 [1.59, 1.86] |
+| violation_any_t1_loose | text-only IF | 0.494 [0.479, 0.506] | 0.90 [0.80, 1.02] |
+| violation_any_t1_loose | fused IF | 0.557 [0.541, 0.572] | 1.58 [1.47, 1.72] |
+| violation_any_t1_loose | fused AE | 0.546 [0.533, 0.561] | 1.48 [1.33, 1.61] |
 | violation_any_t1_loose | Beneish M-Score | 0.425 [0.409, 0.438] | 0.87 [0.74, 0.99] |
-| violation_disclosure_t1_loose | finance-only IF | 0.596 [0.580, 0.611] | 2.01 [1.85, 2.18] |
-| violation_disclosure_t1_loose | text-only IF | 0.503 [0.486, 0.516] | 0.93 [0.77, 1.06] |
-| violation_disclosure_t1_loose | fused IF | 0.582 [0.566, 0.599] | 1.89 [1.71, 2.06] |
-| violation_disclosure_t1_loose | fused AE | 0.557 [0.541, 0.576] | 1.56 [1.40, 1.75] |
+| violation_disclosure_t1_loose | finance-only IF | 0.598 [0.582, 0.614] | 2.02 [1.84, 2.20] |
+| violation_disclosure_t1_loose | text-only IF | 0.499 [0.482, 0.513] | 0.93 [0.78, 1.07] |
+| violation_disclosure_t1_loose | fused IF | 0.581 [0.565, 0.598] | 1.88 [1.72, 2.07] |
+| violation_disclosure_t1_loose | fused AE | 0.561 [0.545, 0.578] | 1.62 [1.46, 1.78] |
 | violation_disclosure_t1_loose | Beneish M-Score | 0.407 [0.389, 0.425] | 0.85 [0.69, 1.00] |
 
 ### Supervised comparison on the strict labels
@@ -97,34 +97,8 @@ counted in the diagnostics table: 1 rows.
 
 ### Reading
 
-- The fused score on the strict disclosure label reaches AUC 0.590 [0.574, 0.611].
+- The fused score on the strict disclosure label reaches AUC 0.590 [0.572, 0.609].
 
 Rows marked `delta_*_vs_finance` are paired AUC differences against the
 finance-only baseline; an interval covering zero means no detectable extra
 rank information.
-
-## Part 2 - v0.1 lexicon control on the repaired financial data
-
-Both variants are fitted on the same 9,239 firm-years with the
-same six financial features, the same preprocessing and the same Isolation
-Forest settings; only the three text features change (current dictionary
-versus the archived v0.1 values).
-
-| Text measurement | Text-only rho | Text-only calibrated lift-10% | Fused rho | Fused calibrated lift-10% |
-| --- | --- | --- | --- | --- |
-| Current dictionary | -0.026 | 0.91 | -0.018 | 2.10 |
-| v0.1 dictionary | -0.048 | 1.04 | -0.021 | 2.19 |
-
-Top-decile overlap between the two text rankings: 0.584;
-between the two fused rankings: 0.846.
-
-Corpus check: the archived and the current text features agree on the token
-count for 0.2% of the shared rows, with
-correlations of 1.000 (readability), 0.615 (sentiment) and
-0.847 (uncertainty).
-
-Reading: the text block stays close to uncorrelated with the Beneish proxy
-under either dictionary, so the near-zero text correlation in the main
-results is not an artefact of the dictionary upgrade; the movement documented
-in the appendix came from the financial-data repair and the benchmark change,
-not from the lexicon.

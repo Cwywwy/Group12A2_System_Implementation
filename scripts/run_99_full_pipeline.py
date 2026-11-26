@@ -18,6 +18,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.config import SAMPLE_YEARS  # noqa: E402
+
 PY = sys.executable
 RUN = PROJECT_ROOT / "scripts"
 OUT = PROJECT_ROOT / "outputs" / "reports"
@@ -65,8 +67,8 @@ def main() -> int:
         "--stage", nargs="+", default=None,
         help="run only the named stage(s), e.g. --stage 06_features 11_descriptives",
     )
-    parser.add_argument("--years", nargs="+", type=int, default=[2021, 2022, 2023],
-                        help="fiscal years for 05_extract (default 2021 2022 2023)")
+    parser.add_argument("--years", nargs="+", type=int, default=list(SAMPLE_YEARS),
+                        help="fiscal years for 05_extract (default: the configured window)")
     parser.add_argument("--skip-05", action="store_true",
                         help="skip the long MD&A extraction stage (hours)")
     args = parser.parse_args()

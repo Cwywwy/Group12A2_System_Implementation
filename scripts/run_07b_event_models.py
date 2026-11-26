@@ -26,6 +26,7 @@ Revision History
 ----------------
 2026-11-11  initial version: external-outcome evaluation for branch 3.
 2026-11-11  repoint paths at data/archive_v0.1 and outputs/branches.
+2026-11-26  score violation labels only on fiscal years with a complete t+1 window.
 """
 import argparse
 import sys
@@ -37,7 +38,13 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config import ALL_FEATURES, FINANCE_FEATURES, TABLES, TEXT_FEATURES  # noqa: E402
+from src.config import (  # noqa: E402
+    ALL_FEATURES,
+    FINANCE_FEATURES,
+    TABLES,
+    TEXT_FEATURES,
+    complete_t1_years as _settled_years,
+)
 from src.evaluation.event_eval import (  # noqa: E402
     bootstrap_auc,
     oof_predictions,
@@ -69,6 +76,20 @@ FEATURE_SETS = {
     "fused": tuple(ALL_FEATURES),
 }
 MODEL_KINDS = ("logit", "hgb")
+VIOLATION_LABELS = ("violation_any_t1", "violation_disclosure_t1")
+
+
+def complete_t1_years(years: pd.Series | list[int] | tuple[int, ...]) -> list[int]:
+    """Fiscal years whose t+1 violation window is settled (see src.config)."""
+    return _settled_years(list(years))
+
+
+def _label_frame(frame: pd.DataFrame, label: str) -> pd.DataFrame:
+    """Restrict violation labels to years with a complete forward window."""
+    if label not in VIOLATION_LABELS:
+        return frame
+    keep = complete_t1_years(frame["fiscal_year"].unique())
+    return frame[frame["fiscal_year"].isin(keep)]
 
 
 def _load_inputs(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -96,15 +117,16 @@ def _supervised_block(frame: pd.DataFrame, features: pd.DataFrame, boot: int) ->
     )
     rows: list[dict[str, object]] = []
     for label, _ in LABELS:
-        if merged[label].nunique() < 2 or merged[label].sum() < 20:
+        block = _label_frame(merged, label)
+        if block[label].nunique() < 2 or block[label].sum() < 20:
             continue
         preds: dict[str, np.ndarray] = {}
         for kind in MODEL_KINDS:
             for set_name, columns in FEATURE_SETS.items():
-                oof = oof_predictions(merged, label, columns, kind=kind)
+                oof = oof_predictions(block, label, columns, kind=kind)
                 preds[f"{kind}:{set_name}"] = oof
                 auc, lo, hi = bootstrap_auc(
-                    merged[label].to_numpy(), oof, n_boot=boot
+                    block[label].to_numpy(), oof, n_boot=boot
                 )
                 rows.append(
                     {
@@ -113,7 +135,7 @@ def _supervised_block(frame: pd.DataFrame, features: pd.DataFrame, boot: int) ->
                         "feature_set": set_name,
                         "n_features": len(columns),
                         "n": int(np.sum(~np.isnan(oof))),
-                        "n_events": int(merged[label].sum()),
+                        "n_events": int(block[label].sum()),
                         "oof_auc": auc,
                         "oof_auc_lo": lo,
                         "oof_auc_hi": hi,
@@ -129,7 +151,7 @@ def _supervised_block(frame: pd.DataFrame, features: pd.DataFrame, boot: int) ->
                 if other is None:
                     continue
                 delta, lo, hi = paired_delta_auc(
-                    merged[label].to_numpy(), base, other, n_boot=boot
+                    block[label].to_numpy(), base, other, n_boot=boot
                 )
                 rows.append(
                     {
@@ -138,7 +160,7 @@ def _supervised_block(frame: pd.DataFrame, features: pd.DataFrame, boot: int) ->
                         "feature_set": f"delta_{name}_vs_finance",
                         "n_features": 0,
                         "n": int(np.sum(~np.isnan(other))),
-                        "n_events": int(merged[label].sum()),
+                        "n_events": int(block[label].sum()),
                         "oof_auc": delta,
                         "oof_auc_lo": lo,
                         "oof_auc_hi": hi,
@@ -257,12 +279,13 @@ def main() -> None:
     frame, _ = _load_inputs(args)
     print(f"[run_07b] merged rows={len(frame):,} firms={frame['symbol'].nunique():,}")
     for label, _ in LABELS:
-        print(f"[run_07b] {label}: events={int(frame[label].sum()):,} "
-              f"rate={frame[label].mean():.2%}")
+        block = _label_frame(frame, label)
+        print(f"[run_07b] {label}: events={int(block[label].sum()):,} "
+              f"rate={block[label].mean():.2%}")
 
     ranking = pd.concat(
         [
-            ranking_metrics(frame, label, SCORE_COLUMNS, n_boot=args.boot)
+            ranking_metrics(_label_frame(frame, label), label, SCORE_COLUMNS, n_boot=args.boot)
             for label, _ in LABELS
         ],
         ignore_index=True,

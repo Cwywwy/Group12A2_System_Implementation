@@ -35,6 +35,9 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.config import SAMPLE_YEARS  # noqa: E402
+
 RAW = PROJECT_ROOT / "data" / "raw"
 CSMAR = RAW / "csmar"
 PDF_ROOT = RAW / "cninfo"
@@ -271,7 +274,7 @@ def audit_feature_formats() -> None:
     checks = {
         "行数=10,172": len(features) == 10172,
         "公司-年度无重复": not features.duplicated(["symbol", "fiscal_year"]).any(),
-        "年份⊂{2021,2022,2023}": set(features["fiscal_year"].unique()) <= {2021, 2022, 2023},
+        "年份⊂{2021,2022,2023}": set(features["fiscal_year"].unique()) <= set(SAMPLE_YEARS),
         "end_date 全为 YYYY-12-31": (features["end_date"].astype(str).str[5:] == "12-31").all(),
         "行业代码全以 C 开头": features["industry_code_d"].astype(str).str.startswith("C").all(),
         "symbol 6 位（读入后）": features["symbol"].astype(str).str.zfill(6).str.len().eq(6).all(),
