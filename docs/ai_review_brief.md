@@ -12,7 +12,7 @@
 
 **论文题目**：Screening Financial Disclosure Risk through Textual-Financial Feature Fusion and Explainable Anomaly Detection: Evidence from Chinese A-share Manufacturing Firms, 2021–2025
 
-**课程要求**：12–15 页研究型稿件（Introduction / Literature Review / Methodology / Experiments with Results），可投 Q2 以上期刊；12 月 15 日截止。
+**课程要求**：12–15 页研究型稿件（Introduction / Literature Review / Methodology / Experiments with Results），可投 Q2 以上期刊；12 月 15 日截止。**附录不计入页数**（导师口径），故篇幅以正文 11 页计。
 
 **导师四条意见（原话）与本次对应改动**：
 
@@ -204,8 +204,8 @@ outputs/manuscript/Group12A2_Final_EN_v0.5.docx
 9. **2021 年 63 个 920xxx 代码取不到年报，是否造成选择偏差？**
    辩护：这些是北交所新代码，其旧代码（8xxxxx）期间的年报无法用新代码检索；属技术性损耗（约占 2021 年 2%），且北交所公司规模小、非标率未必系统性不同。未做敏感性分析——这是一个可以要求补的点。
 
-10. **页数 19 页 vs 课程要求 12–15 页，是否符合要求？**
-    辩护：不。正文 11 页 + 附录 8 页；附录可拆为单独文件。**这是目前唯一明确未满足的硬性要求**，用户已表示「先不处理页数」。
+10. **页数 19 页，会不会超出 12–15 页的要求？**
+    事实：PDF 合计 19 页 = 正文 1–11 页 + 附录 12–19 页（References 与 Appendix A 都从第 11 页起）。导师已明确**附录不计入文章总页数**，故计入篇幅的是正文 11 页，篇幅问题按导师口径结案，不再作为待办。若日后需要正文更接近 12 页下限，做法是把附录 B.2 的解释性段落移回 §5.4（只搬文字、不动数字），而不是加新分析。
 
 ---
 
