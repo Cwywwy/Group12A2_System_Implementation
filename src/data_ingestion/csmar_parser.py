@@ -121,7 +121,13 @@ NAME_ALIASES_EN: dict[str, list[str]] = {
 CONSOLIDATED_MARKERS = {"合并报表", "合并", "A", "1", "1.0"}
 REPORT_TYPE_KEYWORDS = ("Typrep", "报表类型", "StatementType", "Statement Type", "类型编码", "报表类型编码")
 
-SAMPLE_FISCAL_YEARS = (2020, 2021, 2022, 2023)
+# The panel runs 2021-2025, so the statement export must cover the 2020 base
+# year plus every observation year. `_parse_period` accepts the same window;
+# periods outside it become unparsable and are dropped rather than silently
+# relabelled.
+FIRST_FISCAL_YEAR = 2019  # earliest year the parser will recognise
+LAST_FISCAL_YEAR = 2025  # latest year the parser will recognise
+SAMPLE_FISCAL_YEARS = tuple(range(2020, LAST_FISCAL_YEAR + 1))
 
 
 def _normalise_header(value) -> str:
@@ -173,13 +179,14 @@ def _parse_period(value) -> int | None:
     """Accept 2021-12-31, 20211231, 2021/12/31, datetime/date objects -> fiscal year."""
     if value is None or (isinstance(value, float) and np.isnan(value)):
         return None
-    if isinstance(value, (int, np.integer)) and 20190101 <= int(value) <= 20241231:
+    low, high = FIRST_FISCAL_YEAR * 10000 + 101, LAST_FISCAL_YEAR * 10000 + 1231
+    if isinstance(value, (int, np.integer)) and low <= int(value) <= high:
         return int(value) // 10000
     text = str(value).strip()
-    if len(text) >= 8 and text[:8].isdigit() and 20190101 <= int(text[:8]) <= 20241231:
+    if len(text) >= 8 and text[:8].isdigit() and low <= int(text[:8]) <= high:
         return int(text[:4])
     for part in text.replace("/", "-").split(" ")[0].split("-"):
-        if len(part) == 4 and part.isdigit() and 2019 <= int(part) <= 2023:
+        if len(part) == 4 and part.isdigit() and FIRST_FISCAL_YEAR <= int(part) <= LAST_FISCAL_YEAR:
             return int(part)
     return None
 
@@ -333,7 +340,7 @@ def build_finance_intermediate(
     cashflow_path: Path,
     fiscal_years: tuple[int, ...] = SAMPLE_FISCAL_YEARS,
 ) -> pd.DataFrame:
-    """Merge the three tables into one FINANCE_COLS table for 2020-2023.
+    """Merge the three tables into one FINANCE_COLS table for the sample window.
 
     CSMAR exports are quarterly, so each statement contains opening-balance
     rows (YYYY-01-01) as well as interim periods. Only the annual (12-31)

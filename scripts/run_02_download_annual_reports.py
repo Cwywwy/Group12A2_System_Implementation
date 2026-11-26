@@ -44,7 +44,7 @@ def _parse_codes(raw: str | None) -> list[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Batch-download annual report PDFs from CNINFO.")
-    parser.add_argument("--year", type=int, required=True, choices=(2021, 2022, 2023))
+    parser.add_argument("--year", type=int, required=True, choices=(2021, 2022, 2023, 2024, 2025))
     parser.add_argument("--start", type=int, default=0, help="checklist row offset to start from")
     parser.add_argument("--end", type=int, default=None, help="checklist row offset to stop before")
     parser.add_argument("--delay", type=float, default=REQUEST_PAUSE_SECONDS)

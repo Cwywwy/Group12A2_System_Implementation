@@ -32,7 +32,7 @@ LISTEDCO_INFO_XLSX = (
 )
 
 # ---- Sample design (fixed in the proposal, confirmed 2026-11-05) ----
-SAMPLE_YEARS = (2021, 2022, 2023)
+SAMPLE_YEARS = (2021, 2022, 2023, 2024, 2025)
 BASE_YEAR = 2020
 FIN_YEARS = (BASE_YEAR,) + SAMPLE_YEARS          # 2020-2023 financial statements
 MANUFACTURING_PREFIX = "C"                        # CAPCO IndustryCodeD prefix for manufacturing
