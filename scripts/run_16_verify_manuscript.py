@@ -1,5 +1,12 @@
 """Verify that the delivered manuscripts match a fresh rebuild from the current tables.
 
+DEPRECATED for the v0.5 deliverable: this script rebuilds the manuscript through
+``scripts/build_section5.py`` + ``scripts/patch_manuscript_docx.py``, whose table
+numbering (Table 5.5/5.6, §5.7) predates the v0.5 rebuild, so it reports every
+table as a mismatch. Use ``scripts/run_17_audit_results.py`` instead: it recomputes
+the same numbers from the raw CSMAR exports and the saved score table and compares
+them with the delivered docx without rebuilding through that legacy path.
+
 Checks
 1. Rebuild EN/CN docx from ``outputs/manuscript/source/*.docx`` + current ``outputs/tables``.
 2. Compare paragraph text and table grids with the delivered files (must be identical).
@@ -8,6 +15,7 @@ Checks
 
 Revision history
 2026-11-12  created: rebuild-vs-delivered verification for the final manuscripts.
+2026-11-26  mark as deprecated for v0.5; point readers at run_17_audit_results.py.
 """
 
 from __future__ import annotations
