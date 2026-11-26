@@ -23,7 +23,7 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config import CNINFO_RAW, DATA_PROCESSED  # noqa: E402
+from src.config import CNINFO_RAW, DATA_PROCESSED, SAMPLE_YEARS  # noqa: E402
 
 MIN_SIZE_BYTES = 100 * 1024
 YEAR_RE = re.compile(r"(20\d{2})年?年度报告")
@@ -61,7 +61,7 @@ def main() -> None:
     args = parser.parse_args()
 
     checklist = pd.read_csv(DATA_PROCESSED / "download_checklist.csv", dtype={"symbol": str})
-    years = [args.year] if args.year else (2021, 2022, 2023)
+    years = [args.year] if args.year else SAMPLE_YEARS
     rows = []
     for year in years:
         year_col = f"fiscal_{year}"

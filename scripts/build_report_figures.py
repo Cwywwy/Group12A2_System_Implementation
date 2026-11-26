@@ -233,6 +233,84 @@ def figure_56(supervised: pd.DataFrame) -> Path:
     return _save(fig, "figure_5_6_supervised.png")
 
 
+def figure_41_pipeline() -> Path:
+    """Three-stage schematic of the study pipeline (Section 4.1)."""
+    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
+
+    plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 8, "savefig.dpi": 200})
+    fig, ax = plt.subplots(figsize=(9.2, 4.4))
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 60)
+    ax.axis("off")
+
+    def box(x: float, y: float, w: float, h: float, title: str, detail: str, shade: str) -> tuple[float, float]:
+        ax.add_patch(
+            FancyBboxPatch(
+                (x, y), w, h,
+                boxstyle="round,pad=0.35,rounding_size=1.2",
+                linewidth=0.8, edgecolor="#4C72B0", facecolor=shade,
+            )
+        )
+        ax.text(x + w / 2, y + h * 0.63, title, ha="center", va="center", fontsize=8.4, weight="bold")
+        ax.text(x + w / 2, y + h * 0.3, detail, ha="center", va="center", fontsize=7.1, color="#333333")
+        return x + w / 2, y + h / 2
+
+    def right_arrow(x0: float, x1: float, y: float) -> None:
+        ax.add_patch(FancyArrowPatch((x0, y), (x1, y), arrowstyle="-|>", mutation_scale=9, linewidth=0.9, color="#555555"))
+
+    def down_arrow(x: float, y0: float, y1: float) -> None:
+        ax.add_patch(FancyArrowPatch((x, y0), (x, y1), arrowstyle="-|>", mutation_scale=9, linewidth=0.9, color="#555555"))
+
+    def stage_label(y: float, text: str) -> None:
+        ax.text(0.4, y, text, ha="left", va="center", fontsize=7.6, weight="bold", color="#4C72B0", rotation=90)
+
+    # Stage 1: data acquisition, sequential.
+    stage_label(51.0, "ACQUISITION")
+    row1 = [
+        (6.5, 19.5, "Sample frame", "CSMAR, manufacturing\n2021-2025"),
+        (30.0, 19.5, "Statement parsing", "income, balance sheet,\ncash flow"),
+        (53.5, 19.5, "Annual-report PDFs", "CNINFO,\none file per firm-year"),
+        (77.0, 19.5, "MD&A extraction", "section detection,\nstatus per firm-year"),
+    ]
+    for x, w, title, detail in row1:
+        box(x, 46, w, 9, title, detail, "#EEF2F8")
+    for i in range(3):
+        right_arrow(row1[i][0] + row1[i][1] + 0.2, row1[i + 1][0] - 0.2, 50.5)
+
+    # Stage 2: two feature families feeding one preprocessing step.
+    stage_label(31.0, "FEATURES")
+    box(6.5, 32.4, 28.5, 5.2, "Financial features", "6 indicators per firm-year", "#F1F7F1")
+    box(6.5, 25.6, 28.5, 5.2, "Textual features", "3 MD&A indicators", "#F1F7F1")
+    box(40.5, 24.4, 56.0, 13.2, "Preprocessing and matrices",
+        "winsorise 1/99, subindustry-year z-scores;\nfinance-only, text-only and fused matrices, one seed", "#F1F7F1")
+    ax.add_patch(FancyArrowPatch((35.2, 35.0), (40.1, 33.4), arrowstyle="-|>", mutation_scale=9, linewidth=0.9, color="#555555"))
+    ax.add_patch(FancyArrowPatch((35.2, 28.2), (40.1, 29.8), arrowstyle="-|>", mutation_scale=9, linewidth=0.9, color="#555555"))
+
+    # Stage 3: ranking models, attribution, evaluation, output.
+    stage_label(14.5, "MODELLING")
+    row3 = [
+        (6.5, 18.0, "Isolation Forest", "finance, text, fused\n500 trees, seed 42"),
+        (27.5, 16.0, "Autoencoder", "16-8-16,\nreconstruction error"),
+        (46.0, 15.0, "SHAP attribution", "global, group,\nlocal"),
+        (63.5, 17.0, "Evaluation", "Beneish, audit opinion,\nviolation t+1"),
+        (83.0, 13.5, "Outputs", "tables, figures,\nworkbooks"),
+    ]
+    for x, w, title, detail in row3:
+        box(x, 10, w, 9, title, detail, "#FAF3EA")
+    for i in range(4):
+        right_arrow(row3[i][0] + row3[i][1] + 0.2, row3[i + 1][0] - 0.2, 14.5)
+
+    # Stage-to-stage connectors.
+    down_arrow(86.75, 45.4, 38.4)
+    down_arrow(68.5, 23.9, 19.6)
+
+    ax.text(50, 4.0, "Every stage writes inspectable CSV artefacts; one seed, one configuration, scripted rebuild",
+            ha="center", va="center", fontsize=7.2, style="italic", color="#555555")
+    ax.text(50, 1.2, "172 automated tests cover parsing, features, scoring, evaluation and reporting",
+            ha="center", va="center", fontsize=7.2, style="italic", color="#555555")
+    return _save(fig, "figure_4_1_pipeline.png")
+
+
 def main() -> None:
     scores = pd.read_csv(TABLES / "anomaly_scores.csv")
     counts = scores.groupby("fiscal_year").size().rename("complete")

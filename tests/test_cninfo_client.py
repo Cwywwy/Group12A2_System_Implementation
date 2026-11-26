@@ -89,6 +89,44 @@ def test_title_filter_keeps_reissued_reports():
     assert is_annual_report_title("2021年年度报告（更新前）")
 
 
+def test_title_filter_accepts_cninfo_title_variants():
+    # Observed in production on the 2025 acquisition run: four title conventions
+    # the year-anchored pattern used to drop, each of which cost a real PDF.
+    assert is_annual_report_title("年报全文")
+    assert is_annual_report_title("金枫酒业2023年年报全文")
+    assert is_annual_report_title("西菱动力2021年度定期报告全文-更新后")
+    assert is_annual_report_title("600328_中盐化工_2023年_年度报告")
+    assert not is_annual_report_title("600328_中盐化工_2023年_年度报告_摘要")
+    assert not is_annual_report_title("康恩贝2024年年度报告摘要")
+
+
+def test_select_accepts_bare_annual_fulltext():
+    items = [
+        Announcement(code="600572", title="康恩贝2024年年度报告摘要", time_ms=200, adjunct_url="summary.pdf"),
+        Announcement(code="600572", title="年报全文", time_ms=100, adjunct_url="full.pdf"),
+    ]
+    chosen = select_annual_report(items, 2024)
+    assert chosen is not None and chosen.adjunct_url == "full.pdf"
+
+
+def test_select_accepts_underscore_title_without_summary():
+    items = [
+        Announcement(code="600199", title="2022年年度报告摘要", time_ms=200, adjunct_url="summary.pdf"),
+        Announcement(code="600199", title="600199_金种子酒_2022年_年度报告", time_ms=100, adjunct_url="full.pdf"),
+    ]
+    chosen = select_annual_report(items, 2022)
+    assert chosen is not None and chosen.adjunct_url == "full.pdf"
+
+
+def test_select_prefers_reissued_over_original_of_same_year():
+    items = [
+        Announcement(code="300733", title="2021年年度报告", time_ms=100, adjunct_url="original.pdf"),
+        Announcement(code="300733", title="2021年度定期报告全文-更新后", time_ms=300, adjunct_url="updated.pdf"),
+    ]
+    chosen = select_annual_report(items, 2021)
+    assert chosen is not None and chosen.adjunct_url == "updated.pdf"
+
+
 def test_bse_search_payload_uses_empty_category(monkeypatch):
     captured = {}
 
@@ -111,3 +149,50 @@ def test_bse_search_payload_uses_empty_category(monkeypatch):
     assert captured["data"]["stock"] == "832000,gfbj0832000"
     assert captured["data"]["column"] == "bj"
     assert captured["data"]["searchkey"] == "年度报告"
+
+
+def _capture_payload(monkeypatch, code: str) -> dict:
+    captured: dict = {}
+
+    def fake_post(url, data):
+        captured.update(data)
+        return {"announcements": []}
+
+    monkeypatch.setattr(cninfo_client, "_post_form", fake_post)
+    monkeypatch.setattr(cninfo_client, "resolve_org_id", lambda c: "org")
+    cninfo_client.search_annual_reports(code, 2024)
+    return captured
+
+
+def test_search_routes_920_codes_to_the_shenzhen_column(monkeypatch):
+    # After the 2025 re-coding, 920xxx firms are served from the szse column;
+    # the bj column answers with the whole announcement list instead.
+    payload = _capture_payload(monkeypatch, "920000")
+    assert payload["column"] == "szse"
+    assert payload["category"] == "category_ndbg_szsh"
+    assert payload["searchkey"] == ""
+    assert payload["seDate"] == "2025-01-01~2025-12-31"
+
+
+def test_search_routes_legacy_bse_codes_to_the_beijing_column(monkeypatch):
+    payload = _capture_payload(monkeypatch, "832000")
+    assert payload["column"] == "bj"
+    assert payload["category"] == ""
+    assert payload["searchkey"] == "年度报告"
+
+
+def test_download_falls_back_to_legacy_bse_search(monkeypatch, tmp_path):
+    calls: list[str] = []
+
+    monkeypatch.setattr(cninfo_client, "search_annual_reports", lambda code, year: (_ for _ in ()).throw(AssertionError("primary hit")))
+    monkeypatch.setattr(
+        cninfo_client,
+        "search_annual_reports_bse",
+        lambda code, year: [
+            Announcement(code=code, title="2024年年度报告", time_ms=1, adjunct_url="x.pdf")
+        ],
+    )
+    monkeypatch.setattr(cninfo_client, "download_pdf", lambda url, dest: calls.append(url) or "downloaded")
+    record = cninfo_client.download_annual_report("832000", 2024, dest_dir=tmp_path)
+    assert record["status"] == "downloaded"
+    assert calls == ["x.pdf"]

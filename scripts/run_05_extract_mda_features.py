@@ -29,7 +29,7 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config import CNINFO_RAW, DATA_INTERIM  # noqa: E402
+from src.config import CNINFO_RAW, DATA_INTERIM, SAMPLE_YEARS  # noqa: E402
 from src.features.textual import extract_mda_features  # noqa: E402
 
 CHECKPOINT_EVERY = 25
@@ -49,7 +49,7 @@ def main() -> None:
     parser.add_argument("--end", type=str, default=None)
     args = parser.parse_args()
 
-    years = [args.year] if args.year else (2021, 2022, 2023)
+    years = [args.year] if args.year else SAMPLE_YEARS
     DATA_INTERIM.mkdir(parents=True, exist_ok=True)
     for year in years:
         out_path = DATA_INTERIM / f"text_features_{year}.csv"

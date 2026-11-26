@@ -50,25 +50,43 @@ class Announcement:
     adjunct_url: str
 
 
-def _has_annual_report_tag(title: str, fiscal_year: int) -> bool:
-    """True when the title carries the annual-report marker for fiscal_year.
+_ANNUAL_MARKERS = ("年度报告", "年度定期报告", "年报")
+_TITLE_NOISE = re.compile(r"[\s_]")
+_YEAR_TOKEN = re.compile(r"(20\d{2})")
+_NON_ANNUAL_MARKERS = (
+    "半年度", "季度", "问询", "回复", "意见", "摘要", "英文",
+)
 
-    Accepts both conventions observed on CNINFO after removing spaces:
-      '{year}年年度报告'  (e.g. 2021年年度报告)
-      '{year}年度报告'    (e.g. 水井坊2021年度报告, 北方稀土2021年度报告全文)
-    Anchoring on the year digits keeps out interim and quarterly reports
-    ('2021年半年度报告' contains neither tag).
+
+def _has_annual_report_tag(title: str, fiscal_year: int) -> bool:
+    """True when the title can be the annual report of fiscal_year.
+
+    Titles are normalised (spaces and underscores removed) because CNINFO mixes
+    conventions: '2021年年度报告', '水井坊2021年度报告全文',
+    '600328_中盐化工_2023年_年度报告', '金枫酒业2023年年报全文', and even a
+    bare '年报全文' whose year is implied by the request window.
+
+    A title that names a *different* year never qualifies, which keeps a stale
+    document (e.g. a 2018 report surfacing in a 2021 query) out of the sample.
+    A title with no year at all is accepted because the query is already scoped
+    to the publication window of fiscal_year; interim and quarterly filings are
+    rejected by marker whatever their year.
     """
-    t = title.replace(" ", "")
-    return (f"{fiscal_year}年年度报告" in t) or (f"{fiscal_year}年度报告" in t)
+    t = _TITLE_NOISE.sub("", title)
+    if any(marker in t for marker in _NON_ANNUAL_MARKERS):
+        return False
+    years = {int(year) for year in _YEAR_TOKEN.findall(t)}
+    if years and fiscal_year not in years:
+        return False
+    return any(marker in t for marker in _ANNUAL_MARKERS)
 
 
 def is_annual_report_title(title: str) -> bool:
     """Keep full annual reports; drop summaries, English versions, and revisions."""
-    normalised = title.replace(" ", "")
-    # '20\d{2}年?年度报告' matches both '2021年年度报告' and '2021年度报告'
-    # while '2021年半年度报告' and '2021年第一季度报告' match neither.
-    if re.search(r"20\d{2}年?年度报告", normalised) is None:
+    normalised = _TITLE_NOISE.sub("", title)
+    if not any(marker in normalised for marker in _ANNUAL_MARKERS):
+        return False
+    if any(marker in normalised for marker in _NON_ANNUAL_MARKERS):
         return False
     for marker in (
         "摘要", "英文", "已取消", "取消", "修订", "更正",
@@ -103,12 +121,23 @@ def resolve_org_id(code: str) -> str:
 
 
 def search_annual_reports(code: str, fiscal_year: int) -> list[Announcement]:
-    """Query the annual reports of one firm for one fiscal year."""
+    """Query the annual reports of one firm for one fiscal year.
+
+    Routing follows the code family, not the exchange name.  Firms that moved to
+    the Beijing Stock Exchange before the 2025 re-coding still sit under 920xxx,
+    and CNINFO serves those filings from the Shenzhen column with the ordinary
+    annual-report category -- asking the Beijing column returns the full
+    announcement list (100+ rows) instead, so the report is usually off page 1.
+    Legacy 4xxxxx/8xxxxx codes keep the Beijing column with an unfiltered
+    category plus a keyword search, which fits their result set on one page.
+    """
     org_id = resolve_org_id(code)
-    if code.startswith(("4", "8", "9")):
-        column, category = "bj", "category_ndbg_bj"
+    if code.startswith("9"):
+        column, category, searchkey = "szse", "category_ndbg_szsh", ""
+    elif code.startswith(("4", "8")):
+        column, category, searchkey = "bj", "", "年度报告"
     else:
-        column, category = "szse", "category_ndbg_szsh"
+        column, category, searchkey = "szse", "category_ndbg_szsh", ""
     payload = {
         "pageNum": 1,
         "pageSize": 30,
@@ -116,7 +145,7 @@ def search_annual_reports(code: str, fiscal_year: int) -> list[Announcement]:
         "tabName": "fulltext",
         "plate": "",
         "stock": f"{code},{org_id}",
-        "searchkey": "",
+        "searchkey": searchkey,
         "secid": "",
         "category": category,
         "trade": "",
@@ -128,7 +157,7 @@ def search_annual_reports(code: str, fiscal_year: int) -> list[Announcement]:
     data = _post_form(ANNOUNCEMENT_URL, payload) or {}
     items = []
     for ann in data.get("announcements") or []:
-        title = ann.get("announcementTitle", "")
+        title = ann.get("announcementTitle", "").replace("<em>", "").replace("</em>", "")
         if not is_annual_report_title(title):
             continue
         items.append(
@@ -206,9 +235,12 @@ def select_annual_report(items: list[Announcement], fiscal_year: int) -> Announc
     if not same_year:
         return None
     exact_tags = {f"{fiscal_year}年年度报告", f"{fiscal_year}年度报告"}
-    exact = [a for a in same_year if a.title.replace(" ", "") in exact_tags]
-    pool = exact or same_year
-    return max(pool, key=lambda a: a.time_ms)
+
+    def rank(item: Announcement) -> tuple[bool, bool, int]:
+        title = _TITLE_NOISE.sub("", item.title)
+        return ("更新后" in title, title in exact_tags, item.time_ms)
+
+    return max(same_year, key=rank)
 
 
 def download_pdf(adjunct_url: str, dest: Path, chunk_size: int = 1 << 20) -> str:
@@ -235,13 +267,24 @@ def download_pdf(adjunct_url: str, dest: Path, chunk_size: int = 1 << 20) -> str
 
 
 def download_annual_report(code: str, fiscal_year: int, dest_dir: Path | None = None) -> dict:
-    """Full flow for one firm-year; returns a status record for the run log."""
+    """Full flow for one firm-year; returns a status record for the run log.
+
+    A failing primary query is treated as an empty result rather than an error,
+    so that the Beijing Stock Exchange fallback still runs: the two endpoints
+    fail independently, and losing one firm-year to a transient timeout is worse
+    than one extra request.
+    """
     dest_dir = dest_dir or CNINFO_RAW / str(fiscal_year)
     dest = dest_dir / f"{code}_{fiscal_year}_annual_report.pdf"
     record = {"code": code, "year": fiscal_year, "status": "ok", "title": "", "path": str(dest)}
     try:
-        items = search_annual_reports(code, fiscal_year)
+        try:
+            items = search_annual_reports(code, fiscal_year)
+        except Exception:  # noqa: BLE001 - the fallback below may still succeed
+            items = []
         ann = select_annual_report(items, fiscal_year)
+        if ann is None and code.startswith(("4", "8", "9")):
+            ann = select_annual_report(search_annual_reports_bse(code, fiscal_year), fiscal_year)
         if ann is None:
             record.update(status="missing", title="no annual report found")
             return record
