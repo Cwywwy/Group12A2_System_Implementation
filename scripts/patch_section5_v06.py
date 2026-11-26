@@ -100,6 +100,19 @@ FIGURE_54 = {
     ),
 }
 
+FIGURE_41 = {
+    "path": PROJECT_ROOT / "outputs" / "figures" / "manuscript" / "figure_4_1_pipeline.png",
+    "width": Inches(5.6),
+    "caption": (
+        "Figure 4.1. The research pipeline from sample frame to the review queue."
+    ),
+    "note": (
+        "Note: the three bands are acquisition, feature construction and modelling, in "
+        "execution order. Every stage writes an inspectable CSV artefact, so any stage can "
+        "be rerun on its own inputs."
+    ),
+}
+
 
 def _set_text(paragraph, text: str) -> None:
     """Replace a paragraph's text while keeping the formatting of its first run."""
@@ -137,6 +150,14 @@ def _insert_figure(document, anchor, spec: dict) -> None:
     picture._p.addnext(caption._p)
     note = _clone_paragraph(anchor, spec["note"])
     caption._p.addnext(note._p)
+
+
+def _insert_pipeline_figure(document) -> None:
+    """Place Figure 4.1 between the pipeline description and subsection 4.2."""
+    for index, paragraph in enumerate(document.paragraphs):
+        if paragraph.text.strip().startswith("4.2 "):
+            _insert_figure(document, document.paragraphs[index - 1], FIGURE_41)
+            return
 
 
 def _fix_intro_numbers(document) -> None:
@@ -234,6 +255,7 @@ def main() -> int:
     _apply_tables(document, grids)
     _fix_appendix_captions(document, numbers)
     _fix_intro_numbers(document)
+    _insert_pipeline_figure(document)
     _set_text(document.paragraphs[75], conclusion(numbers))
     document.save(TARGET)
 

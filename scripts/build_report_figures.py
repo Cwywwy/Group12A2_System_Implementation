@@ -233,11 +233,64 @@ def figure_56(supervised: pd.DataFrame) -> Path:
     return _save(fig, "figure_5_6_supervised.png")
 
 
-def figure_41_pipeline() -> Path:
+LABELS_41_EN = {
+    "stages": ("ACQUISITION", "FEATURES", "MODELLING"),
+    "row1": [
+        ("Sample frame", "CSMAR, manufacturing\n2021-2025"),
+        ("Statement parsing", "income, balance sheet,\ncash flow"),
+        ("Annual-report PDFs", "CNINFO,\none file per firm-year"),
+        ("MD&A extraction", "section detection,\nstatus per firm-year"),
+    ],
+    "fin": ("Financial features", "6 indicators per firm-year"),
+    "text": ("Textual features", "3 MD&A indicators"),
+    "prep": ("Preprocessing and matrices",
+             "winsorise 1/99, subindustry-year z-scores;\nfinance-only, text-only and fused matrices, one seed"),
+    "row3": [
+        ("Isolation Forest", "finance, text, fused\n500 trees, seed 42"),
+        ("Autoencoder", "16-8-16,\nreconstruction error"),
+        ("SHAP attribution", "global, group,\nlocal"),
+        ("Evaluation", "Beneish, audit opinion,\nviolation t+1"),
+        ("Outputs", "tables, figures,\nworkbooks"),
+    ],
+    "foot1": "Every stage writes inspectable CSV artefacts; one seed, one configuration, scripted rebuild",
+    "foot2": "172 automated tests cover parsing, features, scoring, evaluation and reporting",
+    "name": "figure_4_1_pipeline.png",
+    "font": "DejaVu Sans",
+}
+
+LABELS_41_CN = {
+    "stages": ("数据获取", "特征构建", "建模与评价"),
+    "row1": [
+        ("样本框", "国泰安，制造业\n2021—2025"),
+        ("报表解析", "利润表、资产负债表、\n现金流量表"),
+        ("年报 PDF", "巨潮资讯网，\n每公司—年度一份文件"),
+        ("MD&A 提取", "章节识别，\n逐公司—年度记录状态"),
+    ],
+    "fin": ("财务特征", "每公司—年度 6 项指标"),
+    "text": ("文本特征", "3 项 MD&A 指标"),
+    "prep": ("预处理与特征矩阵",
+             "1%/99% 缩尾，子行业—年度标准化；\n仅财务、仅文本与融合矩阵，单一随机种子"),
+    "row3": [
+        ("孤立森林", "财务、文本、融合\n500 棵树，种子 42"),
+        ("自编码器", "16-8-16，\n重构误差"),
+        ("SHAP 归因", "总体、分组、\n局部"),
+        ("评价", "贝尼什、审计意见、\nt+1 违规"),
+        ("输出", "表格、图形、\n工作簿"),
+    ],
+    "foot1": "每一阶段都写出可检查的 CSV 产物；一个种子、一套配置、脚本化重建",
+    "foot2": "172 项自动化测试覆盖解析、特征、评分、评价与报告",
+    "name": "figure_4_1_pipeline_cn.png",
+    "font": "Microsoft YaHei",
+}
+
+
+def figure_41_pipeline(lang: str = "en") -> Path:
     """Three-stage schematic of the study pipeline (Section 4.1)."""
     from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-    plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 8, "savefig.dpi": 200})
+    labels = LABELS_41_CN if lang == "cn" else LABELS_41_EN
+    plt.rcParams.update({"font.family": labels["font"], "font.size": 8, "savefig.dpi": 200,
+                         "axes.unicode_minus": False})
     fig, ax = plt.subplots(figsize=(9.2, 4.4))
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 60)
@@ -265,36 +318,27 @@ def figure_41_pipeline() -> Path:
         ax.text(0.4, y, text, ha="left", va="center", fontsize=7.6, weight="bold", color="#4C72B0", rotation=90)
 
     # Stage 1: data acquisition, sequential.
-    stage_label(51.0, "ACQUISITION")
-    row1 = [
-        (6.5, 19.5, "Sample frame", "CSMAR, manufacturing\n2021-2025"),
-        (30.0, 19.5, "Statement parsing", "income, balance sheet,\ncash flow"),
-        (53.5, 19.5, "Annual-report PDFs", "CNINFO,\none file per firm-year"),
-        (77.0, 19.5, "MD&A extraction", "section detection,\nstatus per firm-year"),
-    ]
+    stage_label(51.0, labels["stages"][0])
+    row1 = [(6.5, 19.5) + labels["row1"][0], (30.0, 19.5) + labels["row1"][1],
+            (53.5, 19.5) + labels["row1"][2], (77.0, 19.5) + labels["row1"][3]]
     for x, w, title, detail in row1:
         box(x, 46, w, 9, title, detail, "#EEF2F8")
     for i in range(3):
         right_arrow(row1[i][0] + row1[i][1] + 0.2, row1[i + 1][0] - 0.2, 50.5)
 
     # Stage 2: two feature families feeding one preprocessing step.
-    stage_label(31.0, "FEATURES")
-    box(6.5, 32.4, 28.5, 5.2, "Financial features", "6 indicators per firm-year", "#F1F7F1")
-    box(6.5, 25.6, 28.5, 5.2, "Textual features", "3 MD&A indicators", "#F1F7F1")
-    box(40.5, 24.4, 56.0, 13.2, "Preprocessing and matrices",
-        "winsorise 1/99, subindustry-year z-scores;\nfinance-only, text-only and fused matrices, one seed", "#F1F7F1")
+    stage_label(31.0, labels["stages"][1])
+    box(6.5, 32.4, 28.5, 5.2, *labels["fin"], "#F1F7F1")
+    box(6.5, 25.6, 28.5, 5.2, *labels["text"], "#F1F7F1")
+    box(40.5, 24.4, 56.0, 13.2, *labels["prep"], "#F1F7F1")
     ax.add_patch(FancyArrowPatch((35.2, 35.0), (40.1, 33.4), arrowstyle="-|>", mutation_scale=9, linewidth=0.9, color="#555555"))
     ax.add_patch(FancyArrowPatch((35.2, 28.2), (40.1, 29.8), arrowstyle="-|>", mutation_scale=9, linewidth=0.9, color="#555555"))
 
     # Stage 3: ranking models, attribution, evaluation, output.
-    stage_label(14.5, "MODELLING")
-    row3 = [
-        (6.5, 18.0, "Isolation Forest", "finance, text, fused\n500 trees, seed 42"),
-        (27.5, 16.0, "Autoencoder", "16-8-16,\nreconstruction error"),
-        (46.0, 15.0, "SHAP attribution", "global, group,\nlocal"),
-        (63.5, 17.0, "Evaluation", "Beneish, audit opinion,\nviolation t+1"),
-        (83.0, 13.5, "Outputs", "tables, figures,\nworkbooks"),
-    ]
+    stage_label(14.5, labels["stages"][2])
+    row3 = [(6.5, 18.0) + labels["row3"][0], (27.5, 16.0) + labels["row3"][1],
+            (46.0, 15.0) + labels["row3"][2], (63.5, 17.0) + labels["row3"][3],
+            (83.0, 13.5) + labels["row3"][4]]
     for x, w, title, detail in row3:
         box(x, 10, w, 9, title, detail, "#FAF3EA")
     for i in range(4):
@@ -304,11 +348,9 @@ def figure_41_pipeline() -> Path:
     down_arrow(86.75, 45.4, 38.4)
     down_arrow(68.5, 23.9, 19.6)
 
-    ax.text(50, 4.0, "Every stage writes inspectable CSV artefacts; one seed, one configuration, scripted rebuild",
-            ha="center", va="center", fontsize=7.2, style="italic", color="#555555")
-    ax.text(50, 1.2, "172 automated tests cover parsing, features, scoring, evaluation and reporting",
-            ha="center", va="center", fontsize=7.2, style="italic", color="#555555")
-    return _save(fig, "figure_4_1_pipeline.png")
+    ax.text(50, 4.0, labels["foot1"], ha="center", va="center", fontsize=7.2, style="italic", color="#555555")
+    ax.text(50, 1.2, labels["foot2"], ha="center", va="center", fontsize=7.2, style="italic", color="#555555")
+    return _save(fig, labels["name"])
 
 
 def figure_57_year_diagnostics(scores: pd.DataFrame, events: pd.DataFrame) -> Path:
@@ -376,6 +418,8 @@ def main() -> None:
     figures.columns = ["fiscal_year", "frame", "complete"]
 
     print(figure_51(figures))
+    print(figure_41_pipeline("en"))
+    print(figure_41_pipeline("cn"))
     print(figure_52(pd.read_csv(TABLES / "model_metrics.csv")))
     print(figure_53(pd.read_csv(TABLES / "topk_metrics.csv")))
     print(figure_54(pd.read_csv(TABLES / "shap_group_contributions.csv")))

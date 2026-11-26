@@ -12,7 +12,7 @@
 - 参考文献统一为 APA 7（教授第 1 条意见）：新增 `src/reporting/references_apa.py`，24 条按第一作者字母序，正文方括号编号全部改为作者—年份（含多引按字母序、区间展开）；`tests/test_references_apa.py` 12 个用例。
 - 图表扩充（教授第 4 条意见）：新增 `outputs/figures/manuscript/figure_4_1_pipeline.png`（三阶段流程图）与 `figure_5_7_year_diagnostics.png`（Beneish 临界值逐年漂移与排序质量），连同原有四图共六图；`scripts/build_report_figures.py` 增加 `figure_41_pipeline()`、`figure_51_sample()` 等构建函数。
 - 第 5 部分改由新模块持有文本：新增 `src/reporting/manuscript_v04_section5.py`（`section5()` / `section5_tables()` / `abstract()` / `conclusion()`）与 `src/reporting/manuscript_v04_appendix.py`（A1、B1–B6 全部按当前表格重算），`scripts/patch_section5_v06.py` 负责写入、插表、插图、回填摘要与结论、修正表题与引言数字。§5 正文由 2,742 词压到 1,346 词，全文 8,171 → 6,013 词。
-- 交付件重建：`Group12A2_Final_EN_v0.5.docx` / `.pdf`（**19 页**：正文 11 页 + 附录 8 页）；中文稿由三路并行翻译合并为 `docs/manuscript_chinese_draft.md`，`scripts/assemble_chinese_draft.py` 逐表注入并翻译 111 个标签格，`scripts/run_13_build_chinese_docx.py` 支持 pipeline 表格后生成 `Group12A2_Final_CN.docx` / `.pdf`（**20 页**）。
+- 交付件重建：`Group12A2_Final_EN_v0.5.docx` / `.pdf`（**19 页**：正文 11 页 + 附录 8 页，正文含图 4.1 与图 5.1–5.4 共五图）；中文稿由三路并行翻译合并为 `docs/manuscript_chinese_draft.md`，`scripts/assemble_chinese_draft.py` 逐表注入并翻译 111 个标签格，`scripts/run_13_build_chinese_docx.py` 生成 `Group12A2_Final_CN.docx` / `.pdf`（**22 页**，五张图齐全，表格后留 6 磅间距）。流程图另有中文版 `figure_4_1_pipeline_cn.png`（`figure_41_pipeline("cn")`，微软雅黑），中文稿使用该版本。
 - 两张结果工作簿改为全部从 `outputs/tables/` 现算：`scripts/build_results_excel.py` 增 `year_rho()`、`sample_line()`、`rho_line()`、`delta_line()`，删去 v0.1 词典对照表（三年期数字无法在五年面板重算），中文版 6 张表、英文版同构；`tests/test_build_results_excel.py` 同步。
 
 ## 2026-11-24

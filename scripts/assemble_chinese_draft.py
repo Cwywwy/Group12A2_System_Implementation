@@ -139,6 +139,14 @@ CAPTION_PREFIX = {
     9: "**表 B6.",
 }
 
+PIPELINE_FIGURE = (
+    "**图 4.1. 从样本框到复核队列的研究流程**",
+    "",
+    "注：三条带分别是获取、特征构建与建模阶段，按执行顺序排列；每一阶段都写出可检查的 "
+    "CSV 产物，因此任一阶段都可凭其输入独立重跑。",
+    "",
+)
+
 
 def md_table(rows: list[list[str]]) -> str:
     header, body = rows[0], rows[1:]
@@ -173,6 +181,15 @@ def main() -> None:
                 break
         else:
             raise SystemExit(f"caption not found for table {index}")
+    text = "\n".join(lines)
+
+    lines = text.split("\n")
+    for position, line in enumerate(lines):
+        if line.startswith("### 4.2 "):
+            lines[position:position] = list(PIPELINE_FIGURE)
+            break
+    else:
+        raise SystemExit("subsection 4.2 not found")
     text = "\n".join(lines)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)

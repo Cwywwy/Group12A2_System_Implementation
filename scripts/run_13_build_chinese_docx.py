@@ -13,10 +13,20 @@ from pathlib import Path
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
-from docx.shared import Pt, RGBColor
+from docx.shared import Inches, Pt, RGBColor
 
 SOURCE = Path("docs/manuscript_chinese_draft.md")
 OUTPUT = Path("outputs/manuscript/Group12A2_Final_CN.docx")
+FIGURES = Path("outputs/figures/manuscript")
+
+# Caption prefix -> image, mirroring the figures embedded in the English file.
+FIGURE_FILES = {
+    "**图 4.1.": FIGURES / "figure_4_1_pipeline_cn.png",
+    "**图 5.1.": FIGURES / "figure_5_2_spearman.png",
+    "**图 5.2.": FIGURES / "figure_5_3_enrichment.png",
+    "**图 5.3.": FIGURES / "figure_5_7_year_diagnostics.png",
+    "**图 5.4.": FIGURES / "figure_5_5_external_auc.png",
+}
 
 BODY_EA = "宋体"
 BODY_ASCII = "Times New Roman"
@@ -94,6 +104,15 @@ def split_row(line):
     return [cell.strip() for cell in line.strip().strip("|").split("|")]
 
 
+def add_figure(doc, path):
+    """Insert a figure centred, sized to the text block."""
+    doc.add_picture(str(path), width=Inches(5.6))
+    picture = doc.paragraphs[-1]
+    picture.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    picture.paragraph_format.space_before = Pt(6)
+    picture.paragraph_format.space_after = Pt(2)
+
+
 def main():
     doc = Document()
     lines = SOURCE.read_text(encoding="utf-8").splitlines()
@@ -103,6 +122,10 @@ def main():
         if buffer:
             add_table(doc, buffer)
             buffer.clear()
+            spacer = doc.add_paragraph()
+            spacer.paragraph_format.space_after = Pt(6)
+            spacer.paragraph_format.space_before = Pt(0)
+            spacer.paragraph_format.line_spacing = Pt(4)
 
     for raw in lines:
         line = raw.rstrip()
@@ -149,6 +172,10 @@ def main():
             para.paragraph_format.line_spacing = 1.5
             add_inline_runs(para, re.sub(r"^\d+\. ", "", line).strip(), size=12)
         else:
+            for prefix, path in FIGURE_FILES.items():
+                if line.startswith(prefix):
+                    add_figure(doc, path)
+                    break
             add_body(doc, line)
 
     flush_table()
