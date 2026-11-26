@@ -1,7 +1,24 @@
 # 变更日志
 
+## 2026-11-26
+
+- 数据窗口扩展到 2021–2025（教授第 2 条意见）：`src/data_ingestion/csmar_parser.py` 用 `FIRST_FISCAL_YEAR = 2019` / `LAST_FISCAL_YEAR = 2025` 取代写死的 `SAMPLE_FISCAL_YEARS = (2020, 2021, 2022, 2023)`，`_parse_period()` 的期间上下界同步改为由常量推导（原实现把 2024 之后的报表静默丢弃）；`src/config.py` 的 `SAMPLE_YEARS` 改为五年度；`scripts/run_02_download_annual_reports.py` 的 `--year` 取值扩到 2024/2025。
+- 新增 `scripts/run_00_coverage_gate.py`（阶段 0 可行性闸门）：逐年统计框架内企业年、已下载年报、六项财务输入完整、Beneish 输入完整与完整率，当年完整案例数低于上一年 90% 即判 FAIL，报告写 `outputs/reports/phase0_2025_coverage.md`。
+- 闸门结果：FY2021–FY2025 的 Beneish 完整案例为 3,156 / 3,394 / 3,595 / 3,661 / 3,757，占框架 99.7%–99.9%；FY2025 为 FY2024 的 1.026 倍（阈值 0.90），**PASS**。样本框架重建为 17,600 企业年 / 3,893 家，`download_checklist.csv` 增加 `fiscal_2024` 与 `fiscal_2025`。
+- 年报获取与文本抽取补齐：2025 年 3,762 份 PDF 全量下载、MD&A 抽取 3,746/3,762 成功（`run_05 --workers 12`，约 61 分钟）；2024 年并入 `DSW_all` 既有 5,114 行文本并补抓至 5,118；2021–2023 补抓中 920xxx 新代码无法回溯旧代码期间的年报，记为样本损耗而非缺陷。修复两处 CNINFO 客户端缺陷：`is_annual_report_title()` 原先要求标题含「20XX年年度报告」，把「年报全文」「2023年年报全文」「2021年度定期报告全文-更新后」等真实标题判为无此文件（2021–2024 补抓 0/91、0/17、1/12、1/229）；`search_annual_reports()` 原先对 920xxx 用北交所 `category_ndbg_bj` 分页取不到第 1 页，改为按代码段路由到深交所目录并保留北交所兜底。`tests/test_cninfo_client.py` 增至 18 个用例。
+- 五年度重跑（n = 16,408 / 3,773 家，占框架 93.2%）：四个排序对 Beneish 的 ρ 全部落入显著区间（finance −0.033，p < 0.001；text −0.021；fused −0.019；AE −0.026）；非标意见 AUC 仅财务 0.787 [0.762, 0.809]、融合 0.759、自编码器 0.696、Beneish **0.263**；监督式增量 logit −0.0005、HGB +0.0038，八个区间无一排除零。
+- 新增前瞻标签可得性闸门：`src/config.py` 增 `VIOLATION_SNAPSHOT = (2026, 10, 20)` 与 `complete_t1_years()`，只有 t+1 全年落在快照之前（含一年供应商滞后）的财政年度才计入违规结局，结果限定为 2021–2023；`scripts/run_07b_event_models.py` 与 `run_07c_strict_timing.py` 均按此过滤。证据：t+1 违规率由 2021–2023 的约 21% 降到 2024 年 13.5%、2025 年 1.0%。
+- 第 3、4 部分重组（教授第 3 条意见）：新增 `src/reporting/manuscript_v04_text.py` 持有新正文，§3 由 755 词改写为 750 词（新增 3.4 评估设计，承接原 §4.5），§4 由 1,231 词压到 379 词（删去与 §3 重复的模型参数、样本数字与 4.6 局限段，4.6 并入 §5.5）；`scripts/patch_manuscript_v05.py` 按锚点替换并同步 24 条 APA 参考文献、17 处正文引用与年度窗口字符串。
+- 参考文献统一为 APA 7（教授第 1 条意见）：新增 `src/reporting/references_apa.py`，24 条按第一作者字母序，正文方括号编号全部改为作者—年份（含多引按字母序、区间展开）；`tests/test_references_apa.py` 12 个用例。
+- 图表扩充（教授第 4 条意见）：新增 `outputs/figures/manuscript/figure_4_1_pipeline.png`（三阶段流程图）与 `figure_5_7_year_diagnostics.png`（Beneish 临界值逐年漂移与排序质量），连同原有四图共六图；`scripts/build_report_figures.py` 增加 `figure_41_pipeline()`、`figure_51_sample()` 等构建函数。
+- 第 5 部分改由新模块持有文本：新增 `src/reporting/manuscript_v04_section5.py`（`section5()` / `section5_tables()` / `abstract()` / `conclusion()`）与 `src/reporting/manuscript_v04_appendix.py`（A1、B1–B6 全部按当前表格重算），`scripts/patch_section5_v06.py` 负责写入、插表、插图、回填摘要与结论、修正表题与引言数字。§5 正文由 2,742 词压到 1,346 词，全文 8,171 → 6,013 词。
+- 交付件重建：`Group12A2_Final_EN_v0.5.docx` / `.pdf`（**19 页**：正文 11 页 + 附录 8 页）；中文稿由三路并行翻译合并为 `docs/manuscript_chinese_draft.md`，`scripts/assemble_chinese_draft.py` 逐表注入并翻译 111 个标签格，`scripts/run_13_build_chinese_docx.py` 支持 pipeline 表格后生成 `Group12A2_Final_CN.docx` / `.pdf`（**20 页**）。
+- 两张结果工作簿改为全部从 `outputs/tables/` 现算：`scripts/build_results_excel.py` 增 `year_rho()`、`sample_line()`、`rho_line()`、`delta_line()`，删去 v0.1 词典对照表（三年期数字无法在五年面板重算），中文版 6 张表、英文版同构；`tests/test_build_results_excel.py` 同步。
+
 ## 2026-11-24
 
+- 新增通俗解读报告（外行向，中英各一份）：`docs/interpretation_report_cn.md` 与 `docs/interpretation_report_en.md`。面向零会计/零机器学习背景读者，逐节解释年报与两类监管结果、样本流失链、9 个特征、Beneish M-Score 八变量、孤立森林与自编码器、SHAP、全部评估指标与结果表，并附术语表、FAQ 与工程复现说明；所有数字与 v0.3 定稿、`outputs/tables/*.csv` 逐项核对（含 lift 6.37/4.95/3.76 与富集口径校准）。
+- `README.md` 增「给完全外行讲清这个项目」入口与解读报告条目；英文交付物表把定稿改为指向 v0.3（原文指旧稿）。
 - 新建 `docs/revision/v0.3_consistency_revision.md`（36 条问题逐条判定：17 成立 / 3 部分成立 / 10 不成立，另 6 条为本次自查新增；同一文件内含 8 条保留结论、10 条禁用措辞、6 条必须披露项、执行结果与证据索引 —— 原本拆成登记册与边界清单两份，按「文档收敛到一份」的要求合并），并把修订计划落到 `.github/plans/2026-11-24-v0.3-consistency-revision.md`。
 - 完成正文闭合（Phase 1）：`scripts/patch_manuscript_v03.py` 对三个 docx 源文件做锚点式替换，共 14 组修正 —— 600870 案例改为「两者一致、且该年 t+1 有披露违规」、摘要 AE 相关系数改为 −0.007（p = 0.528）、「below chance at both thresholds」改为分阈值表述、结论段把「融合块增量为负」更正为「文本块更差」、附录 A.1 与 §5.5 口径统一、删除悬空的「§5.1 describes the repair」、TF-IDF 段落改为显式声明不可比、Beneish 阈值措辞由「literal/conventional」改为「legacy」并补 DEPI 中性化披露、SHAP 补「模型自身输出单位、与 0–1 分数不可加」说明。
 - 完成证据闭合（Phase 2）：新增 `strict_forward_labels()` 与 `scripts/run_07c_strict_timing.py`，用「公告日必须晚于年报披露日」的严格门槛重算 —— 任一违规 1,965 → 1,543（掉 21.5%）、披露违规 1,337 → 1,040（掉 22.2%），财务块对披露违规的 AUC 由 0.596 升到 0.600 [0.584, 0.619]，结论方向不变。新增 `scripts/run_08_lexicon_control.py`，用 `data/archive_v0.1/` 旧词典在修复后的同一 9,239 行上重算：融合 ρ −0.021 → −0.018、文本 ρ −0.048 → −0.026、可读性完全一致，证明附录里那次符号翻转来自数据修复而非词典。

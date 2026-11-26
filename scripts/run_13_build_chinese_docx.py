@@ -74,9 +74,35 @@ def add_heading(doc, text, size, space_before=12, space_after=8):
     return para
 
 
+def add_table(doc, rows):
+    """Render a markdown pipe table as a bordered Word table."""
+    table = doc.add_table(rows=len(rows), cols=len(rows[0]))
+    table.style = "Table Grid"
+    table.autofit = True
+    for row_index, cells in enumerate(rows):
+        for col_index, value in enumerate(cells):
+            para = table.cell(row_index, col_index).paragraphs[0]
+            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            para.paragraph_format.space_after = Pt(0)
+            run = para.add_run(value)
+            set_run_font(run, ea=HEAD_EA if row_index == 0 else BODY_EA,
+                         size=9, bold=row_index == 0)
+    return table
+
+
+def split_row(line):
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
 def main():
     doc = Document()
     lines = SOURCE.read_text(encoding="utf-8").splitlines()
+    buffer = []
+
+    def flush_table():
+        if buffer:
+            add_table(doc, buffer)
+            buffer.clear()
 
     for raw in lines:
         line = raw.rstrip()
@@ -85,12 +111,22 @@ def main():
         if line.strip() == "---":
             continue
 
+        if line.lstrip().startswith("|"):
+            cells = split_row(line)
+            if all(set(cell) <= set("-: ") for cell in cells):
+                continue
+            buffer.append(cells)
+            continue
+        flush_table()
+
         if line.startswith("# "):
             para = doc.add_paragraph()
             para.alignment = WD_ALIGN_PARAGRAPH.CENTER
             para.paragraph_format.space_after = Pt(12)
             add_inline_runs(para, line[2:].strip(), ea=HEAD_EA, size=16,
                             base_bold=True)
+        elif line.startswith("## 关键词"):
+            add_body(doc, "**关键词：**" + line.split("：", 1)[1])
         elif line.startswith("## "):
             add_heading(doc, line[3:].strip(), size=15, space_before=14,
                         space_after=8)
@@ -114,6 +150,8 @@ def main():
             add_inline_runs(para, re.sub(r"^\d+\. ", "", line).strip(), size=12)
         else:
             add_body(doc, line)
+
+    flush_table()
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     doc.save(OUTPUT)

@@ -37,9 +37,13 @@ from openpyxl.utils import get_column_letter
 
 ROOT = Path(__file__).resolve().parents[1]
 TABLES = ROOT / "outputs" / "tables"
-EVENT_JSON = ROOT / "data" / "processed" / "event_table.json"
+PROCESSED = ROOT / "data" / "processed"
+EVENT_JSON = PROCESSED / "event_table.json"
 DEFAULT_OUT = ROOT / "outputs" / "Group12A2_Results_Summary.xlsx"
 DEFAULT_OUT_EN = ROOT / "outputs" / "Group12A2_Results_Summary_EN.xlsx"
+
+sys.path.insert(0, str(ROOT))
+from src.config import complete_t1_years  # noqa: E402
 
 # ---- palette (matches the slide deck spec) ---------------------------------
 INK = "102A43"
@@ -75,9 +79,9 @@ def L(table: dict[str, dict[str, str]]) -> dict[str, str]:
 
 SHEET_NAMES = {
     "cn": ["总览 Overview", "RQ1 主结果", "RQ2 可解释", "RQ3 稳健性",
-           "§5.7 外部检验", "§5.6 两版对比", "说明 Notes"],
+           "§5.6 外部检验", "§5.6 两版对比", "说明 Notes"],
     "en": ["Overview", "RQ1 Main results", "RQ2 Explainability", "RQ3 Robustness",
-           "5.7 External validation", "5.6 Two specifications", "Notes"],
+           "5.6 External validation", "5.6 Two specifications", "Notes"],
 }
 
 MODEL_LABELS = {
@@ -178,14 +182,15 @@ FUSED_SET_LABELS = {
 STRINGS: dict[str, dict[str, str]] = {
     "cn": {
         "ov_title": "Group 12A2 · 财务披露风险筛查 —— 结果可视化总览",
-        "ov_sub": ("与定稿 Group12A2_Final_EN（§5.1–§5.7）完全同源；数字由 outputs/tables/ 现场生成"
-                   "（{stamp}）。n = 8,140 firm-years / 3,265 家公司，2021–2023。"),
+        "ov_sub": ("与定稿 Group12A2_Final_EN（§5.1–§5.4）完全同源；数字由 outputs/tables/ 现场生成"
+                   "（{stamp}）。n = 16,408 firm-years / 3,893 家公司，2021–2025。"),
         "ov_head": ["关键指标 · Key metric", "值 · Value", "论文出处 · In the paper"],
         "ov_concl_title": "一句话结论（诚实用语 · Honest phrasing）",
-        "ov_concl": ("财务特征对 Beneish 代理有弱但显著的排序信号（ρ = 0.136）；文本单独对代理基准无增量、"
-                     "对真实事件更弱；但融合在真实监管事件上给出小而一致的正增量（ΔAUC +0.006 ~ +0.026）。"
-                     "Beneish 代理对真实非标意见的 AUC 仅 0.405（低于随机）——第一版的代理基准方向相反，"
-                     "外部检验（§5.7）比代理基准更可信。"),
+        "ov_concl": ("财务特征对 Beneish 代理有弱但显著的负相关（ρ = −0.033，p = 0.000021）；Text 块同样为负"
+                     "（ρ = −0.021，p = 0.0084）；融合略弱（ρ = −0.019，p = 0.0136）；自编码器 −0.026（p = 0.0011）。"
+                     "对真实非标意见，仅财务的 AUC = 0.787，Beneish 代理仅 0.263（低于随机）；"
+                     "监督式融合相对仅财务的增量实为 0（Logit −0.0005，HGB +0.0038，区间均含 0）——"
+                     "文本块的互补性在五年版样本上未能复现，这是本轮最诚实的结论。"),
         "ov_nav_title": "工作簿导航 · Sheets",
         "ov_nav": [
             ["工作表", "内容", "图表"],
@@ -193,7 +198,7 @@ STRINGS: dict[str, dict[str, str]] = {
             ["RQ1 主结果", "Spearman ρ、双基准 top-5/10/15% 富集率", "图1 富集率柱状对比"],
             ["RQ2 可解释", "SHAP 组贡献与全局前 9 特征", "图2 组贡献饼图、图3 特征重要性"],
             ["RQ3 稳健性", "top-10% 名单重叠（Jaccard）矩阵", "—"],
-            ["§5.7 外部检验", "真实监管事件：事件率、AUC、lift、监督 ΔAUC", "图4 AUC、图5 ΔAUC"],
+            ["§5.6 外部检验", "真实监管事件：事件率、AUC、lift、监督 ΔAUC", "图4 AUC、图5 ΔAUC"],
             ["§5.6 两版对比", "词典密度 v0.1 → v0.2 与做法差异", "图6 词典密度对比"],
             ["说明 Notes", "口径、数据来源与复现命令", "—"],
         ],
@@ -202,8 +207,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "rq1_head": ["模型", "Spearman ρ", "p 值"],
         "rq1_head2": ["模型", "富集率·legacy(M>−1.78) top-10%", "富集率·样本校准 top-10%",
                       "富集率·样本校准 top-5%", "富集率·样本校准 top-15%"],
-        "rq1_note": ("口径：legacy = M > −1.78（在本样本标红 62.8%，噪声大）；样本校准 = M 落在样本前 10%（M > 16.52），"
-                     "构造上事件率为 10%。同一排序，仅基准不同。"),
+        "rq1_note": ("口径：legacy = M > −1.78（沿用文献阈值，在本样本标红比例远高于 10%，噪声大）；"
+                     "样本校准 = M 落在样本前 10%（Q90），构造上事件率为 10%。同一排序，仅基准不同。"),
         "rq1_chart": "图1  top-10% 队列富集率：样本校准 vs legacy 基准",
         "rq1_y": "富集率（1 = 全样本水平）",
         "rq2_title": "RQ2：什么驱动了异常分数？—— SHAP 全局解释",
@@ -212,23 +217,23 @@ STRINGS: dict[str, dict[str, str]] = {
         "rq2_pie": "图2  SHAP 组贡献",
         "rq2_head2": ["特征", "mean |SHAP|"],
         "rq2_chart3": "图3  全局特征重要性（mean |SHAP|）",
-        "rq2_note": ("前三为 经营现金流/总资产、营收增长、可读性；三个文本特征全部进入前五，但组层面文本合计仅 34.6%，"
-                     "且其对代理基准的排序力近乎为零（见 RQ1）。"),
+        "rq2_note": ("前三为情感均衡（0.300）、营收增长（0.296）、可读性（0.296）；组层面财务 65.7%、文本 34.3%，"
+                     "但文本组对代理基准的排序力近乎为零（见 RQ1）。"),
         "rq3_title": "RQ3：排序是否稳健？—— top-10% 名单重叠（Jaccard）",
-        "rq3_sub": "四个排序两两之间的 top-10% 名单重合度；AE 与 IF 的重合仅 0.373，稳健性未复现。",
+        "rq3_sub": "四个排序两两之间的 top-10% 名单重合度；仅财务与融合重合 0.789，自编码器与融合仅 0.417。",
         "rq3_head": ["Jaccard 重叠"],
-        "rq3_note": ("读法：仅财务与融合的名单重合 0.817（融合基本复刻财务排序）；仅财务与仅文本仅 0.111（文本给出几乎独立的名单，"
-                     "但该名单对基准无信号）。自编码器未能复现隔离森林排序（ρ = 0.009，p = 0.409）。"),
+        "rq3_note": ("读法：仅财务与融合的名单重合 0.789（融合基本复刻财务排序）；仅财务与仅文本仅 0.116（文本给出几乎独立的名单，"
+                     "但该名单对基准与真实事件均无信号）。自编码器与融合重合 0.417，未能复现隔离森林排序。"),
         "rq3_year_title": "分年度 Spearman ρ（稳健性）",
         "rq3_year_head": ["模型", "2021", "2022", "2023"],
-        "rq3_year_note": "分年度排序稳定：财务单独逐年为正且上升，文本单独三年全为负，融合逐年低于财务单独。",
-        "ext_title": "§5.7 外部检验：真实监管事件上的表现",
+        "rq3_year_note": "分年度排序：四个排序五年均为负相关，财务单独的负相关逐年加深（2021 → 2025），文本单独与融合的绝对值更小。",
+        "ext_title": "§5.6 外部检验：真实监管事件上的表现",
         "ext_sub": ("结果变量来自 CSMAR：FIN_Audit（审计意见，同期=识别而非预测）与 STK_Violation_Main（违规，t+1 对齐=前瞻）。"
                     "审计意见覆盖率 100%。"),
         "ext_head": ["事件标签", "事件数", "事件率", "2021", "2022", "2023"],
         "ext_head2": ["分数", "AUC 非标意见", "AUC 披露类 t+1", "lift 前10% 非标", "lift 前10% 披露"],
         "ext_chart4": "图4  真实事件 AUC：非标意见 vs 披露类违规（0.5 = 随机）",
-        "ext_note4": "Beneish 代理对真实非标意见的 AUC 仅 0.405，低于随机——代理基准方向相反。",
+        "ext_note4": "Beneish 代理对真实非标意见的 AUC 仅 0.263，低于随机——代理基准方向相反。",
         "ext_head3": ["特征组", "Logit AUC 非标", "Logit Δ非标", "HGB AUC 非标", "HGB Δ非标",
                       "Logit AUC 披露", "Logit Δ披露", "HGB AUC 披露", "HGB Δ披露"],
         "ext_delta_short": {"mod_opinion": "窄非标", "mod_opinion_wide": "宽非标",
@@ -236,8 +241,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "ext_delta_sep": "·",
         "ext_hd": ["组合", "ΔAUC（融合 − 仅财务）"],
         "ext_chart5": "图5  监督式 ΔAUC（融合 − 仅财务，8 组合；正值 = 增量）",
-        "ext_note5": ("按公司分组的 5 折交叉验证（StratifiedGroupKFold，无同公司泄漏）。8 个组合的 ΔAUC 全部为正，"
-                      "5 个 bootstrap 区间不含 0：文本块对真实事件有小而一致的互补增量；文本单独则弱于财务。"),
+        "ext_note5": ("按公司分组的 5 折交叉验证（StratifiedGroupKFold，无同公司泄漏）。融合相对仅财务的 ΔAUC 在非标意见上"
+                      "为 −0.0005（Logit）与 +0.0038（HGB），区间均含 0；仅文本的组合则显著更差（约 −0.23）。"
+                      "五年版样本上，文本块没有可检出的互补增量。"),
         "ver_title": "§5.6 第一版 → 第二版：做法改进与结果差异",
         "ver_sub": "改进让阴性结论更可信，而不是翻转结论。第一版数据与代码保留在 archive_v0.1 与 git tag v0.1-baseline。",
         "ver_head": ["设计选择", "第一版 v0.1", "第二版 v0.2"],
@@ -259,29 +265,30 @@ STRINGS: dict[str, dict[str, str]] = {
         "notes_head": ["项", "说明"],
         "notes_rows": [
             ["数字来源", "outputs/tables/ 的 8 张 CSV + data/processed/event_table.json；与论文同源（build_section5.py 同一来源）。"],
-            ["样本", "n = 8,140 firm-years / 3,265 家公司，2021–2023，A 股制造业；9 特征 + M-Score 齐全的子集（框内 10,172 条）。"],
+            ["样本", "n = 16,408 firm-years / 3,893 家公司，2021–2025，A 股制造业；9 特征 + M-Score 齐全的子集（框内 17,600 条）。"],
             ["RQ1 基准口径", "legacy = M > −1.78；样本校准 = M 前 10%（q90 = 16.52）。富集率 = 队列事件率 ÷ 全样本事件率。"],
-            ["外部检验口径", "非标意见窄口径 = 保留 / 无法表示 / 否定（188 条，2.31%）；宽口径再加强调事项段（327 条，4.02%）。"
-             "审计意见为同期结果（识别），t+1 披露类违规为前瞻（预测）。"],
+            ["外部检验口径", "非标意见窄口径 = 保留 / 无法表示 / 否定（322 条，2.0%）；宽口径再加强调事项段（593 条，3.6%）。"
+             "审计意见为同期结果（识别）；t+1 违规为前瞻（预测），仅用 2021–2023 三个前视窗口完整的年度"
+             "（任意违规 1,965 条 / 21.3%，披露类 1,337 条 / 14.5%）。"],
             ["监督式评估", "Logit 与 HistGradientBoosting，SimpleImputer + 标准化，按公司分组 5 折交叉验证防泄漏；"
-             "ΔAUC 为配对 bootstrap（400 次）。"],
-            ["诚实边界", "文本单独在所有真实事件上弱于财务；融合的增量小但方向一致（5/8 区间不含 0）。"
-             "勿写成『文本很强』或『发现欺诈』——教授要求如实报告。"],
+             "ΔAUC 为配对 bootstrap（400 次）。融合相对仅财务的增量区间均含 0。"],
+            ["诚实边界", "文本单独在所有真实事件上弱于财务；融合的增量不显著（8 组区间均含 0）。"
+             "勿写成『文本很强』或『发现欺诈』——如实报告阴性结果。"],
             ["重新生成", ".venv\\Scripts\\python.exe scripts\\build_results_excel.py"],
             ["配套文件", "outputs/reports/experiment_summary.md、v02_results_diff.md、outputs/branches/*.md"],
         ],
     },
     "en": {
         "ov_title": "Group 12A2 · Financial Disclosure Risk Screening — Results at a Glance",
-        "ov_sub": ("Same source as the final manuscript Group12A2_Final_EN (§5.1–§5.7); all numbers are recomputed "
-                   "live from outputs/tables/ (generated {stamp}). n = 8,140 firm-years / 3,265 firms, 2021–2023."),
+        "ov_sub": ("Same source as the final manuscript Group12A2_Final_EN (§5.1–§5.4); all numbers are recomputed "
+                   "live from outputs/tables/ (generated {stamp}). n = 16,408 firm-years / 3,893 firms, 2021–2025."),
         "ov_head": ["Key metric", "Value", "In the paper"],
         "ov_concl_title": "One-line conclusion (honest phrasing)",
-        "ov_concl": ("Finance features carry a weak but significant ranking signal against the Beneish proxy (ρ = 0.136). "
+        "ov_concl": ("Finance features carry a weak but significant negative rank association with the Beneish proxy (ρ = −0.033, p = 0.000021). "
                      "Text alone adds nothing on the proxy and is weaker still on real events; the fused model, however, "
-                     "adds a small but consistent positive increment on real regulatory outcomes (ΔAUC +0.006 ~ +0.026). "
-                     "The Beneish proxy itself reaches only AUC 0.405 for real modified opinions (below chance) — the "
-                     "first-version benchmark points the wrong way, so the external validation (§5.7) is more credible "
+                     "adds no detectable increment on real regulatory outcomes (ΔAUC −0.0005 for logit, +0.0038 for HGB, both intervals spanning zero). "
+                     "The Beneish proxy itself reaches only AUC 0.263 for real modified opinions (below chance) — the "
+                     "benchmark points the wrong way, so the external validation (§5.6) is more credible "
                      "than the proxy benchmark."),
         "ov_nav_title": "Workbook navigation",
         "ov_nav": [
@@ -290,7 +297,7 @@ STRINGS: dict[str, dict[str, str]] = {
             ["RQ1 Main results", "Spearman ρ, dual-benchmark top-5/10/15% enrichment", "Chart 1 enrichment comparison"],
             ["RQ2 Explainability", "SHAP group contributions and top-9 feature importances", "Chart 2 pie, Chart 3 importances"],
             ["RQ3 Robustness", "Top-10% list overlap (Jaccard) matrix", "—"],
-            ["5.7 External validation", "Real regulatory events: rates, AUC, lift, supervised ΔAUC", "Chart 4 AUC, Chart 5 ΔAUC"],
+            ["5.6 External validation", "Real regulatory events: rates, AUC, lift, supervised ΔAUC", "Chart 4 AUC, Chart 5 ΔAUC"],
             ["5.6 Two specifications", "Lexicon density v0.1 → v0.2 and design changes", "Chart 6 density"],
             ["Notes", "Definitions, sources and reproduction commands", "—"],
         ],
@@ -313,23 +320,23 @@ STRINGS: dict[str, dict[str, str]] = {
                      "reach the top five, yet the text group contributes only 34.6% in total and its ranking power against "
                      "the proxy benchmark is near zero (see RQ1)."),
         "rq3_title": "RQ3: Is the ranking robust? — Top-10% list overlap (Jaccard)",
-        "rq3_sub": "Pairwise top-10% list overlap between the four rankings; AE–IF overlap is only 0.373, so robustness does not replicate.",
+        "rq3_sub": "Pairwise top-10% list overlap between the four rankings; finance and fused share 0.789, AE and fused only 0.417.",
         "rq3_head": ["Jaccard overlap"],
-        "rq3_note": ("How to read: finance and fused share 0.817 of their top-10% lists (fused essentially reproduces the "
-                     "finance ranking); finance vs text share only 0.111 (text yields an almost independent list, but that "
+        "rq3_note": ("How to read: finance and fused share 0.789 of their top-10% lists (fused essentially reproduces the "
+                     "finance ranking); finance vs text share only 0.116 (text yields an almost independent list, but that "
                      "list has no signal against the benchmark). The autoencoder does not replicate the Isolation Forest "
-                     "ranking (ρ = 0.009, p = 0.409)."),
+                     "list carries no signal against either the proxy or the real outcomes."),
         "rq3_year_title": "Spearman ρ by year (robustness)",
         "rq3_year_head": ["Model", "2021", "2022", "2023"],
         "rq3_year_note": ("Stable by year: finance-only is positive in every year and rising, text-only is negative in all "
                           "three years, and the fused ranking trails the finance-only ranking in every year."),
-        "ext_title": "§5.7 External validation: performance on real regulatory outcomes",
+        "ext_title": "§5.6 External validation: performance on real regulatory outcomes",
         "ext_sub": ("Outcomes come from CSMAR: FIN_Audit (audit opinions, contemporaneous = detection rather than prediction) "
                     "and STK_Violation_Main (violations, t+1 aligned = forward-looking). Audit-opinion coverage is 100%."),
         "ext_head": ["Event label", "Count", "Rate", "2021", "2022", "2023"],
         "ext_head2": ["Score", "AUC opinion", "AUC disclosure t+1", "Lift top-10% opinion", "Lift top-10% disclosure"],
         "ext_chart4": "Chart 4  Real-event AUC: modified opinion vs disclosure violation (0.5 = chance)",
-        "ext_note4": "The Beneish proxy reaches only 0.405 AUC on real modified opinions — below chance; the proxy benchmark points the wrong way.",
+        "ext_note4": "The Beneish proxy reaches only 0.263 AUC on real modified opinions — below chance; the proxy benchmark points the wrong way.",
         "ext_head3": ["Feature set", "Logit AUC op.", "Logit Δ op.", "HGB AUC op.", "HGB Δ op.",
                       "Logit AUC disc.", "Logit Δ disc.", "HGB AUC disc.", "HGB Δ disc."],
         "ext_delta_short": {"mod_opinion": "Opinion (narrow)", "mod_opinion_wide": "Opinion (wide)",
@@ -337,9 +344,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "ext_delta_sep": " · ",
         "ext_hd": ["Combination", "ΔAUC (fused − finance)"],
         "ext_chart5": "Chart 5  Supervised ΔAUC (fused − finance, 8 combinations; positive = increment)",
-        "ext_note5": ("Company-grouped 5-fold cross-validation (StratifiedGroupKFold; no same-company leakage). All eight "
-                      "ΔAUC values are positive and five bootstrap intervals exclude 0: the text block adds a small but "
-                      "consistent complementary increment on real events, while text alone is weaker than finance."),
+        "ext_note5": ("Company-grouped 5-fold cross-validation (StratifiedGroupKFold; no same-company leakage). The "
+                      "fused-minus-finance ΔAUC is −0.0005 under the logit and +0.0038 under gradient boosting, and every "
+                      "bootstrap interval spans zero; text alone is markedly worse (about −0.23). On the five-year panel "
+                      "the text block shows no detectable complementary increment."),
         "ver_title": "§5.6 From the first to the second specification: design changes and result differences",
         "ver_sub": ("The changes make the null result more credible rather than flipping it. First-version data and code are "
                     "kept in archive_v0.1 and git tag v0.1-baseline."),
@@ -362,7 +370,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "notes_head": ["Item", "Description"],
         "notes_rows": [
             ["Data source", "Eight CSVs under outputs/tables/ plus data/processed/event_table.json; the same source as the paper (shared with build_section5.py)."],
-            ["Sample", "n = 8,140 firm-years / 3,265 firms, 2021–2023, Chinese A-share manufacturing; the subset with all 9 features and the M-Score (10,172 in the frame)."],
+            ["Sample", "n = 16,408 firm-years / 3,893 firms, 2021–2025, Chinese A-share manufacturing; the subset with all 9 features and the M-Score (17,600 in the frame)."],
             ["RQ1 benchmarks", "legacy = M > −1.78; calibrated = top-decile M (q90 = 16.52). Enrichment = queue event rate ÷ full-sample event rate."],
             ["External-validation definitions", "Narrow modified opinion = qualified / disclaimer / adverse (188, 2.31%); wide adds emphasis-of-matter (327, 4.02%). Audit opinions are contemporaneous (detection); t+1 disclosure violations are forward-looking (prediction)."],
             ["Supervised evaluation", "Logit and HistGradientBoosting, SimpleImputer + standardisation, company-grouped 5-fold cross-validation to prevent leakage; ΔAUC via paired bootstrap (400 draws)."],
@@ -377,6 +385,15 @@ STRINGS: dict[str, dict[str, str]] = {
 # ---- data loading ----------------------------------------------------------
 def load_csv(name: str) -> list[dict[str, str]]:
     path = TABLES / name
+    if not path.exists():
+        raise FileNotFoundError(f"required table missing: {path}")
+    with path.open(encoding="utf-8-sig", newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def load_processed(name: str) -> list[dict[str, str]]:
+    """Read a CSV from data/processed (the sample and event tables)."""
+    path = PROCESSED / name
     if not path.exists():
         raise FileNotFoundError(f"required table missing: {path}")
     with path.open(encoding="utf-8-sig", newline="") as fh:
@@ -400,7 +417,22 @@ def load_metrics() -> dict[str, dict[str, list[dict]]]:
 
 
 def load_event_summary() -> dict:
-    return json.loads(EVENT_JSON.read_text(encoding="utf-8"))
+    """Event counts, with forward labels limited to their settled window."""
+    summary = json.loads(EVENT_JSON.read_text(encoding="utf-8"))
+    years = sorted(int(year) for year in summary["by_year"])
+    settled = set(complete_t1_years(years))
+    rows = [
+        row for row in load_processed("event_table.csv")
+        if int(float(row["fiscal_year"])) in settled
+    ]
+    window = sum(int(summary["by_year"][str(year)]["n"]) for year in settled)
+    for key in ("violation_any_t1", "violation_disclosure_t1"):
+        count = sum(1 for row in rows if row.get(key) in ("1", 1, True, "True"))
+        summary[f"{key}_count"] = count
+        summary[f"{key}_rate"] = count / window if window else 0.0
+    summary["violation_window_n"] = window
+    summary["settled_years"] = sorted(settled)
+    return summary
 
 
 def load_top1() -> dict[str, str]:
@@ -410,6 +442,60 @@ def load_top1() -> dict[str, str]:
     top = dict(rows[0])
     top["symbol"] = str(top["symbol"]).zfill(6)
     return top
+
+
+def _rank(values: list[float]) -> list[float]:
+    """Average ranks, so tied scores do not bias the correlation."""
+    order = sorted(range(len(values)), key=lambda i: values[i])
+    ranks = [0.0] * len(values)
+    i = 0
+    while i < len(order):
+        j = i
+        while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
+            j += 1
+        rank = (i + j) / 2 + 1
+        for k in range(i, j + 1):
+            ranks[order[k]] = rank
+        i = j + 1
+    return ranks
+
+
+def _spearman(xs: list[float], ys: list[float]) -> float:
+    n = len(xs)
+    if n < 3:
+        return float("nan")
+    rx, ry = _rank(xs), _rank(ys)
+    mx, my = sum(rx) / n, sum(ry) / n
+    cov = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
+    dx = sum((a - mx) ** 2 for a in rx) ** 0.5
+    dy = sum((b - my) ** 2 for b in ry) ** 0.5
+    return cov / (dx * dy) if dx and dy else float("nan")
+
+
+def year_rho() -> tuple[list[str], dict[str, list[float]]]:
+    """Per-fiscal-year Spearman rho of each ranking against the M-Score."""
+    rows = load_csv("anomaly_scores.csv")
+    years = sorted({int(float(r["fiscal_year"])) for r in rows})
+    scores = ("if_finance", "if_text", "if_fused", "ae_fused")
+    table: dict[str, list[float]] = {}
+    for key in scores:
+        per_year: list[float] = []
+        for year in years:
+            pairs = [
+                (float(r[key]), float(r["m_score"]))
+                for r in rows
+                if int(float(r["fiscal_year"])) == year
+                and r.get(key) not in ("", None)
+                and r.get("m_score") not in ("", None)
+            ]
+            per_year.append(round(_spearman([p[0] for p in pairs], [p[1] for p in pairs]), 3))
+        table[key] = per_year
+    return [str(year) for year in years], table
+
+
+def fiscal_years() -> list[str]:
+    rows = load_csv("anomaly_scores.csv")
+    return [str(year) for year in sorted({int(float(r["fiscal_year"])) for r in rows})]
 
 
 # ---- formatting helpers ----------------------------------------------------
@@ -534,6 +620,53 @@ def new_sheet(wb: Workbook, name: str) -> tuple:
 
 
 # ---- sheets ----------------------------------------------------------------
+def sample_line() -> str:
+    """Sample size and firm count straight from the released score table."""
+    rows = load_csv("anomaly_scores.csv")
+    firms = len({str(r["symbol"]).zfill(6) for r in rows})
+    return f"{len(rows):,} / {firms:,}"
+
+
+def _p_text(value: float) -> str:
+    """Format a p-value, reporting an inequality when it rounds to zero."""
+    return "< 0.001" if value < 0.001 else f"{value:.3f}"
+
+
+def rho_line(metric: dict[str, dict]) -> str:
+    """The four rank correlations with a significance star for each."""
+    out = []
+    for key in ("if_finance", "if_text", "if_fused", "ae_fused"):
+        row = metric[key]
+        rho = num(row["spearman_rho"])
+        p = num(row["spearman_p"], 6)
+        star = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
+        out.append(f"{rho:.3f}{star}")
+    return " / ".join(out)
+
+
+def delta_line(m: dict[str, list[dict]]) -> str:
+    """Range of the fused-minus-finance supervised increment across arms."""
+    values = [
+        num(r["oof_auc"])
+        for r in m["event_supervised_metrics"]
+        if r["feature_set"] == "delta_fused_vs_finance"
+    ]
+    spans = [
+        r for r in m["event_supervised_metrics"]
+        if r["feature_set"] == "delta_fused_vs_finance"
+    ]
+    excludes = sum(
+        1 for r in spans if num(r["oof_auc_lo"]) > 0 or num(r["oof_auc_hi"]) < 0
+    )
+    if not values:
+        return "-"
+    if CURRENT["lang"] == "cn":
+        tail = f"（{excludes}/{len(values)} 个置信区间不含 0）"
+    else:
+        tail = f" ({excludes}/{len(values)} CIs exclude 0)"
+    return f"{min(values):+.3f} ~ {max(values):+.3f}{tail}"
+
+
 def sheet_overview(wb: Workbook, m: dict[str, list[dict]], events: dict, top1: dict) -> None:
     ws = new_sheet(wb, SHEET_NAMES[CURRENT["lang"]][0])
     style_title(ws, "B2", T("ov_title"))
@@ -546,49 +679,49 @@ def sheet_overview(wb: Workbook, m: dict[str, list[dict]], events: dict, top1: d
 
     metric_rows = {
         "cn": [
-            ["有效样本 / 公司数", "8,140 / 3,265", "§5.1 Table 5.1"],
+            ["有效样本 / 公司数", sample_line(), "§5.1 Table 5.1"],
             ["Spearman ρ（仅财务 / 仅文本 / 融合 / 自编码器）",
-             "0.136*** / −0.029** / 0.103*** / 0.009", "§5.3 Table 5.2"],
+             rho_line(metric), "§5.2 Table 5.1"],
             ["top-10% 富集率，样本校准口径（仅财务 / 融合）",
              f"{num(topk[('calibrated','if_finance','0.1')]['enrichment']):.2f}× / "
-             f"{num(topk[('calibrated','if_fused','0.1')]['enrichment']):.2f}×", "§5.3 Table 5.3"],
+             f"{num(topk[('calibrated','if_fused','0.1')]['enrichment']):.2f}×", "§5.2 Figure 5.2"],
             ["top-10% 富集率，legacy 口径 M > −1.78（仅财务 / 融合）",
              f"{num(topk[('legacy','if_finance','0.1')]['enrichment']):.2f}× / "
-             f"{num(topk[('legacy','if_fused','0.1')]['enrichment']):.2f}×", "§5.3 Table 5.3"],
+             f"{num(topk[('legacy','if_fused','0.1')]['enrichment']):.2f}×", "§5.2 Figure 5.2"],
             ["SHAP 组贡献（财务 / 文本）",
              f"{num(shap['finance']['abs_shap_share'])*100:.1f}% / "
              f"{num(shap['text']['abs_shap_share'])*100:.1f}%", "§5.4"],
             ["外部检验：非标审计意见 AUC（仅财务 / Beneish 代理）",
              f"{num(rank[('mod_opinion','finance-only IF')]['auc']):.3f} / "
-             f"{num(rank[('mod_opinion','Beneish M-Score')]['auc']):.3f}", "§5.7 Table 5.5"],
+             f"{num(rank[('mod_opinion','Beneish M-Score')]['auc']):.3f}", "§5.6 Table 5.2"],
             ["外部检验：非标意见 top-10% 富集（仅财务）",
-             f"{num(rank[('mod_opinion','finance-only IF')]['lift_10pct']):.2f}×", "§5.7 Table 5.5"],
+             f"{num(rank[('mod_opinion','finance-only IF')]['lift_10pct']):.2f}×", "§5.6 Table 5.2"],
             ["监督式 ΔAUC（融合 − 仅财务，8 个组合）",
-             "+0.006 ~ +0.026（5/8 置信区间不含 0）", "§5.7 Table 5.6"],
+             delta_line(m), "§5.6 Table 5.3"],
             ["审查第一名（融合分数）",
              f"{top1['symbol']}（{top1.get('fiscal_year','')}，{top1.get('industry_code_d','C42')}）分数 "
              f"{num(top1.get('if_fused')):.3f}，M-Score {num(top1.get('m_score'),1):,.1f}", "§5.4"],
         ],
         "en": [
-            ["Usable sample / firms", "8,140 / 3,265", "§5.1 Table 5.1"],
+            ["Usable sample / firms", sample_line(), "§5.1 Table 5.1"],
             ["Spearman ρ (finance / text / fused / autoencoder)",
-             "0.136*** / −0.029** / 0.103*** / 0.009", "§5.3 Table 5.2"],
+             rho_line(metric), "§5.2 Table 5.1"],
             ["Top-10% enrichment, calibrated (finance / fused)",
              f"{num(topk[('calibrated','if_finance','0.1')]['enrichment']):.2f}× / "
-             f"{num(topk[('calibrated','if_fused','0.1')]['enrichment']):.2f}×", "§5.3 Table 5.3"],
+             f"{num(topk[('calibrated','if_fused','0.1')]['enrichment']):.2f}×", "§5.2 Figure 5.2"],
             ["Top-10% enrichment, legacy M > −1.78 (finance / fused)",
              f"{num(topk[('legacy','if_finance','0.1')]['enrichment']):.2f}× / "
-             f"{num(topk[('legacy','if_fused','0.1')]['enrichment']):.2f}×", "§5.3 Table 5.3"],
+             f"{num(topk[('legacy','if_fused','0.1')]['enrichment']):.2f}×", "§5.2 Figure 5.2"],
             ["SHAP group share (finance / text)",
              f"{num(shap['finance']['abs_shap_share'])*100:.1f}% / "
              f"{num(shap['text']['abs_shap_share'])*100:.1f}%", "§5.4"],
             ["External: modified-opinion AUC (finance-only / Beneish proxy)",
              f"{num(rank[('mod_opinion','finance-only IF')]['auc']):.3f} / "
-             f"{num(rank[('mod_opinion','Beneish M-Score')]['auc']):.3f}", "§5.7 Table 5.5"],
+             f"{num(rank[('mod_opinion','Beneish M-Score')]['auc']):.3f}", "§5.6 Table 5.2"],
             ["External: modified-opinion top-10% lift (finance-only)",
-             f"{num(rank[('mod_opinion','finance-only IF')]['lift_10pct']):.2f}×", "§5.7 Table 5.5"],
+             f"{num(rank[('mod_opinion','finance-only IF')]['lift_10pct']):.2f}×", "§5.6 Table 5.2"],
             ["Supervised ΔAUC (fused − finance, 8 combinations)",
-             "+0.006 ~ +0.026 (5/8 CIs exclude 0)", "§5.7 Table 5.6"],
+             delta_line(m), "§5.6 Table 5.3"],
             ["Top case under review (fused score)",
              f"{top1['symbol']} ({top1.get('fiscal_year','')}, {top1.get('industry_code_d','C42')}) score "
              f"{num(top1.get('if_fused')):.3f}, M-Score {num(top1.get('m_score'),1):,.1f}", "§5.4"],
@@ -620,7 +753,7 @@ def sheet_rq1(wb: Workbook, m: dict[str, list[dict]]) -> None:
 
     head = T("rq1_head")
     rows = [
-        [L(MODEL_LABELS)[k], num(v["spearman_rho"]), v["spearman_p"]]
+        [L(MODEL_LABELS)[k], num(v["spearman_rho"]), _p_text(num(v["spearman_p"], 6))]
         for k, v in [
             ("if_finance", metric["if_finance"]),
             ("if_text", metric["if_text"]),
@@ -628,10 +761,6 @@ def sheet_rq1(wb: Workbook, m: dict[str, list[dict]]) -> None:
             ("ae_fused", metric["ae_fused"]),
         ]
     ]
-    # p-values readable
-    p_fmt = {"if_finance": "< 0.001", "if_text": "0.008", "if_fused": "< 0.001", "ae_fused": "0.409"}
-    for row, key in zip(rows, p_fmt):
-        row[2] = p_fmt[key]
     write_table(ws, 5, 2, head, rows, number_fmt="0.000", widths=[30, 14, 12])
 
     r0 = 12
@@ -705,15 +834,19 @@ def sheet_rq3(wb: Workbook, m: dict[str, list[dict]]) -> None:
     ws["B11"].alignment = Alignment(wrap_text=True, vertical="top")
 
     style_title(ws, "B14", T("rq3_year_title"))
-    head2 = T("rq3_year_head")
-    rows2 = [
-        ["Finance-only IF", 0.103, 0.130, 0.173],
-        ["Text-only IF", -0.036, -0.039, -0.016],
-        ["Fused IF", 0.073, 0.092, 0.141],
-        ["Fused AE", -0.019, 0.026, 0.001],
-    ]
-    write_table(ws, 15, 2, head2, rows2, number_fmt="0.000", widths=[30, 12, 12, 12])
-    style_note(ws, "B20", T("rq3_year_note"))
+    years, table = year_rho()
+    head2 = [T("rq3_year_head")[0], *years]
+    labels = {
+        "if_finance": "Finance-only IF",
+        "if_text": "Text-only IF",
+        "if_fused": "Fused IF",
+        "ae_fused": "Fused AE",
+    }
+    rows2 = [[L(MODEL_LABELS)[key] if key in L(MODEL_LABELS) else labels[key]]
+             + list(table[key]) for key in labels]
+    write_table(ws, 15, 2, head2, rows2, number_fmt="0.000",
+                widths=[30] + [10] * len(years))
+    style_note(ws, f"B{17 + len(years)}", T("rq3_year_note"))
 
 
 def sheet_external(wb: Workbook, m: dict[str, list[dict]], events: dict) -> None:
@@ -722,6 +855,9 @@ def sheet_external(wb: Workbook, m: dict[str, list[dict]], events: dict) -> None
     style_subtitle(ws, "B3", T("ext_sub"))
 
     head = T("ext_head")
+    years = fiscal_years()
+    head = head[:3] + years
+    settled = {str(year) for year in events.get("settled_years", [])}
     rows = []
     by_year = events["by_year"]
     for key, count_k, rate_k in (
@@ -730,13 +866,17 @@ def sheet_external(wb: Workbook, m: dict[str, list[dict]], events: dict) -> None
         ("violation_any_t1", "violation_any_t1_count", "violation_any_t1_rate"),
         ("violation_disclosure_t1", "violation_disclosure_t1_count", "violation_disclosure_t1_rate"),
     ):
-        rows.append([
-            L(EVENT_LABELS)[key], int(events[count_k]), f_pct(events[rate_k]),
-            f_pct(by_year["2021"][key]), f_pct(by_year["2022"][key]), f_pct(by_year["2023"][key]),
-        ])
+        forward = key.startswith("violation")
+        cells = [
+            "—" if forward and year not in settled
+            else f_pct(by_year[year][key])
+            for year in years
+        ]
+        rows.append([L(EVENT_LABELS)[key], int(events[count_k]),
+                     f_pct(events[rate_k]), *cells])
     write_table(ws, 5, 2, head, rows,
-                number_fmt=[None, None, "0.0%", "0.0%", "0.0%", "0.0%"],
-                widths=[30, 10, 11, 10, 10, 10])
+                number_fmt=[None, None, "0.0%"] + ["0.0%"] * len(years),
+                widths=[30, 10, 11] + [10] * len(years))
 
     r1 = 12
     rank = {(r["label"], r["model"]): r for r in m["event_ranking_metrics"]}
@@ -850,7 +990,6 @@ def build(out: Path, lang: str = "cn") -> Workbook:
     sheet_rq2(wb, m)
     sheet_rq3(wb, m)
     sheet_external(wb, m, events)
-    sheet_versions(wb, m)
     sheet_notes(wb)
     wb.save(out)
     return wb
